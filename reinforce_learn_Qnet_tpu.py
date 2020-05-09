@@ -140,7 +140,7 @@ class Agent:
             state = torch.tensor([self.state])
 
             if device not in ['cpu']:
-                state = state.cuda(device)
+                state = state.to(device)
 
             q_values = net(state)
             _, action = torch.max(q_values, dim=1)
@@ -280,17 +280,10 @@ class DQNLightning(pl.LightningModule):
     def __dataloader(self) -> DataLoader:
         """Initialize the Replay Buffer dataset used for retrieving experiences"""
         dataset = RLDataset(self.buffer, self.hparams.episode_length)
-
-        tpu_sampler = torch.utils.data.distributed.DistributedSampler(
-            dataset,
-            num_replicas=xm.xrt_world_size(),
-            rank=xm.get_ordinal(),
-            shuffle=True
-        )
-
         dataloader = DataLoader(dataset=dataset,
                                 batch_size=self.hparams.batch_size,
-                                sampler=tpu_sampler)
+                                sampler=None
+                                )
         return dataloader
 
     def train_dataloader(self) -> DataLoader:
@@ -299,7 +292,7 @@ class DQNLightning(pl.LightningModule):
 
     def get_device(self, batch) -> str:
         """Retrieve device currently being used by minibatch"""
-        return batch[0].device.index if self.on_gpu else 'cpu'
+        return batch[0].device
 
 
 def main(hparams) -> None:
