@@ -1,11 +1,11 @@
 import torch.nn as nn
 
 
-def __ortho_init(model):
-        for p in model.modules():
-            if isinstance(p, nn.Conv2d) or isinstance(p, nn.Linear):
-                nn.init.orthogonal_(p.weight, 0.01)
-                nn.init.constant_(p.bias, 0.0)
+def ortho_init(model):
+    for p in model.modules():
+        if isinstance(p, nn.Conv2d) or isinstance(p, nn.Linear):
+            nn.init.orthogonal_(p.weight, 0.01)
+            nn.init.constant_(p.bias, 0.0)
 
 
 class CNNPolicyNet(nn.Module):
@@ -41,13 +41,15 @@ class CNNPolicyNet(nn.Module):
             nn.Linear(self.hidden_dim, 2)
         )
 
-        __ortho_init(self)
+        ortho_init(self)
 
     def forward(self, states):
         z = self.conv_features(states).view(states.size(0), -1)
         z = self.dense_features(z)
 
-        return self.actor_model(z), self.critic_model(z).split(1, dim=1)
+        policy = self.actor_model(z)
+        pred_adv_ext, pred_adv_int = self.critic_model(z).split(1, dim=1)
+        return policy, pred_adv_ext, pred_adv_int
 
 class Flatten(nn.Module):
     def forward(self, input):
@@ -74,7 +76,7 @@ class RNDNet(nn.Module):
             self.nonlinearity
         ) for _ in range(2)]
 
-        __ortho_init(self)
+        ortho_init(self)
 
         for param in self.random_net.parameters():
             param.requires_grad_(False)
@@ -92,12 +94,12 @@ if __name__ == '__main__':
     ex_inp = torch.randn(128, 4, 84, 84)
 
     ex_out = ex_cnn(ex_inp)
-    ex_out_rnd = ex_rnd(ex_inp.split(1, dim=1)[0].unsqueeze(1))
+    ex_out_rnd = ex_rnd(ex_inp.split(1, dim=1)[0])
 
     print("AC input shape", ex_inp.shape)
-    print("AC output shape", ex_out.shape)
+    print("AC output shapes", [ot.shape for ot in ex_out])
     print("AC n params", sum(p.numel() for p in ex_cnn.parameters()))
 
-    print("AC input shape", ex_inp.split(1, dim=1)[0].unsqueeze(1).shape)
-    print("AC output shape", ex_out_rnd.shape)
-    print("AC n params", sum(p.numel() for p in ex_rnd.parameters()) // 2)
+    print("RND input shape", ex_inp.split(1, dim=1)[0].shape)
+    print("RND output shapes", [ot.shape for ot in ex_out_rnd])
+    print("RND n params", sum(p.numel() for p in ex_rnd.parameters()) // 2)
