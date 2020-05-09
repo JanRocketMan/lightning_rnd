@@ -1,18 +1,13 @@
 """
 Deep Reinforcement Learning: Deep Q-network (DQN)
-
 This example is based on https://github.com/PacktPublishing/Deep-Reinforcement-Learning-Hands-On-
 Second-Edition/blob/master/Chapter06/02_dqn_pong.py
-
 The template illustrates using Lightning for Reinforcement Learning. The example builds a basic DQN using the
 classic CartPole environment.
-
 To run the template just run:
 python reinforce_learn_Qnet.py
-
 After ~1500 steps, you will see the total_reward hitting the max score of 200. Open up TensorBoard to
 see the metrics:
-
 tensorboard --logdir default
 """
 
@@ -38,7 +33,6 @@ import torch_xla.core.xla_model as xm
 class DQN(nn.Module):
     """
     Simple MLP network
-
     Args:
         obs_size: observation/state size of the environment
         n_actions: number of discrete actions available in the environment
@@ -66,7 +60,6 @@ Experience = namedtuple(
 class ReplayBuffer:
     """
     Replay Buffer for storing past experiences allowing the agent to learn from them
-
     Args:
         capacity: size of the buffer
     """
@@ -80,7 +73,6 @@ class ReplayBuffer:
     def append(self, experience: Experience) -> None:
         """
         Add experience to the buffer
-
         Args:
             experience: tuple (state, action, reward, done, new_state)
         """
@@ -98,7 +90,6 @@ class RLDataset(IterableDataset):
     """
     Iterable Dataset containing the ExperienceBuffer
     which will be updated with new experiences during training
-
     Args:
         buffer: replay buffer
         sample_size: number of experiences to sample at a time
@@ -117,7 +108,6 @@ class RLDataset(IterableDataset):
 class Agent:
     """
     Base Agent class handeling the interaction with the environment
-
     Args:
         env: training environment
         replay_buffer: replay buffer storing experiences
@@ -137,12 +127,10 @@ class Agent:
         """
         Using the given network, decide what action to carry out
         using an epsilon-greedy policy
-
         Args:
             net: DQN network
             epsilon: value to determine likelihood of taking a random action
             device: current device
-
         Returns:
             action
         """
@@ -164,12 +152,10 @@ class Agent:
     def play_step(self, net: nn.Module, epsilon: float = 0.0, device: str = 'cpu') -> Tuple[float, bool]:
         """
         Carries out a single interaction step between the agent and the environment
-
         Args:
             net: DQN network
             epsilon: value to determine likelihood of taking a random action
             device: current device
-
         Returns:
             reward, done
         """
@@ -213,7 +199,6 @@ class DQNLightning(pl.LightningModule):
         """
         Carries out several random steps through the environment to initially fill
         up the replay buffer with experiences
-
         Args:
             steps: number of random steps to populate the buffer with
         """
@@ -223,10 +208,8 @@ class DQNLightning(pl.LightningModule):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         Passes in a state `x` through the network and gets the `q_values` of each action as an output
-
         Args:
             x: environment state
-
         Returns:
             q values
         """
@@ -236,10 +219,8 @@ class DQNLightning(pl.LightningModule):
     def dqn_mse_loss(self, batch: Tuple[torch.Tensor, torch.Tensor]) -> torch.Tensor:
         """
         Calculates the mse loss using a mini batch from the replay buffer
-
         Args:
             batch: current mini batch of replay data
-
         Returns:
             loss
         """
@@ -260,11 +241,9 @@ class DQNLightning(pl.LightningModule):
         """
         Carries out a single step through the environment to update the replay buffer.
         Then calculates loss based on the minibatch received
-
         Args:
             batch: current mini batch of replay data
             nb_batch: batch number
-
         Returns:
             Training loss and log metrics
         """
@@ -313,12 +292,7 @@ class DQNLightning(pl.LightningModule):
 
     def get_device(self, batch) -> str:
         """Retrieve device currently being used by minibatch"""
-        if self.use_tpu:
-            return xm.xla_device()
-        elif self.on_gpu:
-            return batch[0].device
-        else:
-            raise ValueError("cpu is not supported")
+        return batch[0].device
 
 
 def main(hparams) -> None:
