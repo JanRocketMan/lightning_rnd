@@ -14,6 +14,8 @@ from PIL import Image
 
 
 MAX_STEPS_PER_EPISODE = default_config["MaxStepsPerEpisode"]
+IMAGE_HIGHT = default_config["ImageHeight"]
+IMAGE_WIDTH = default_config["ImageWidth"]
 
 
 class Environment(Process):
@@ -106,7 +108,7 @@ class MontezumaInfoWrapper(gym.Wrapper):
         return self.env.reset()
 
 
-class AtariEnvironment(Environment):
+class AtariEnvironmentWrapper(Environment):
     def __init__(
             self,
             env_id,
@@ -114,12 +116,11 @@ class AtariEnvironment(Environment):
             env_idx,
             child_conn,
             history_size=4,
-            h=84,
-            w=84,
-            life_done=True,
+            h=IMAGE_HIGHT,
+            w=IMAGE_WIDTH,
             sticky_action=True,
             p=0.25):
-        super(AtariEnvironment, self).__init__()
+        super(AtariEnvironmentWrapper, self).__init__()
         self.daemon = True
         self.env = MaxAndSkipEnv(gym.make(env_id), is_render)
         if 'Montezuma' in env_id:
@@ -145,7 +146,7 @@ class AtariEnvironment(Environment):
         self.reset()
 
     def run(self):
-        super(AtariEnvironment, self).run()
+        super(AtariEnvironmentWrapper, self).run()
         while True:
             action = self.child_conn.recv()
 
@@ -163,7 +164,6 @@ class AtariEnvironment(Environment):
             if self.steps >= MAX_STEPS_PER_EPISODE:
                 done = True
 
-            log_reward = reward
             force_done = done
 
             self.history[:3, :, :] = self.history[1:, :, :]
@@ -181,7 +181,8 @@ class AtariEnvironment(Environment):
                 self.history = self.reset()
 
             self.child_conn.send(
-                [self.history[:, :, :], reward, force_done, done, log_reward])
+                [self.history[:, :, :], reward, force_done, done]
+            )
 
     def reset(self):
         self.last_action = 0

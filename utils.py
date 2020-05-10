@@ -24,9 +24,13 @@ def make_train_data(reward, done, value, gamma, num_step, num_worker):
 
 class RunningMeanStd(object):
     def __init__(self, epsilon=1e-4, shape=()):
-        self.mean = np.zeros(shape, dtype='float64')
-        self.var = np.ones(shape, dtype='float64')
+        self.mean = np.zeros(shape, dtype=np.float64)
+        self.var = np.ones(shape, dtype=np.float64)
         self.count = epsilon
+
+    @property
+    def std(self):
+        return self.var ** 0.5
 
     def update(self, x):
         batch_mean, batch_var = np.mean(x, axis=0), np.var(x, axis=0)
