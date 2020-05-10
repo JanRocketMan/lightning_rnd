@@ -24,7 +24,7 @@ class ParallelEnvironmentRunner:
         self.parent_conns = []
         self.child_conns = []
 
-        self.reset_logged_data()
+        self.reset_stored_data()
 
         self.observation_stats = RunningMeanStd(
             shape=(1, 1, IMAGE_HEIGHT, IMAGE_WIDTH)
@@ -35,14 +35,16 @@ class ParallelEnvironmentRunner:
         self.__init_workers()
         self.__init_obs_stats()
 
-    def reset_logged_data(self):
-        self.next_states = np.zeros(
-            (self.num_workers, 4, IMAGE_HEIGHT, IMAGE_WIDTH),
-            dtype=np.float32
-        )
-        self.rewards = np.zeros(self.num_workers, dtype=np.float32)
-        self.dones = np.zeros(self.num_workers, dtype=np.bool)
-        self.real_dones = np.zeros(self.num_workers, dtype=np.bool)
+    def reset_stored_data(self):
+        self.stored_data = {
+            'next_states': np.zeros(
+                (self.num_workers, 4, IMAGE_HEIGHT, IMAGE_WIDTH),
+                dtype=np.float32
+            ),
+            'rewards': np.zeros(self.num_workers, dtype=np.float32),
+            'dones': np.zeros(self.num_workers, dtype=np.bool),
+            'real_dones': np.zeros(self.num_workers, dtype=np.bool)
+        }
 
     def preprocess_obs(self, some_states):
         return np.clip(
@@ -60,27 +62,27 @@ class ParallelEnvironmentRunner:
 
         for j, parent_conn in enumerate(self.parent_conns):
             new_state, reward, done, real_done = parent_conn.recv()
-            self.next_states[j] = new_state
-            self.rewards[j] = reward
-            self.dones[j] = done
-            self.real_dones[j] = real_done
 
-        if compute_int_reward:
-            intrinsic_reward = agent.get_intrinsic_reward(
-                self.preprocess_obs(self.next_states)
-            )
+            self.stored_data['next_states'][j] = new_state
+            self.stored_data['rewards'][j] = reward
+            self.stored_data['dones'][j] = done
+            self.stored_data['real_dones'][j] = real_done
 
         if update_stats:
-            self.observation_stats.update(self.next_states)
+            self.observation_stats.update(self.stored_data['next_states'])
 
-        ret_vals = [
-            self.next_states, self.rewards, self.dones, self.real_dones,
-            actions, ext_value, int_value, policy
-        ]
+        ret_dict = self.stored_data
+        ret_dict["actions"] = actions
+        ret_dict["ext_value"] = ext_value
+        ret_dict["int_value"] = int_value
+        ret_dict["policy"] = policy
+
         if compute_int_reward:
-            ret_vals.append(intrinsic_reward)
+            ret_dict['intrinsic_reward'] = agent.get_intrinsic_reward(
+                self.preprocess_obs(self.stored_data['next_states'])
+            )
 
-        return ret_vals
+        return ret_dict
 
     def __init_workers(self):
         for i in range(self.num_workers):
@@ -107,6 +109,6 @@ class ParallelEnvironmentRunner:
         for _ in range(INIT_STEPS):
             _ = self.run_agent(
                 DummyAgent(self.num_workers),
-                self.next_states
+                self.stored_data['next_states']
             )
-        self.reset_logged_data()
+        self.reset_stored_data()
