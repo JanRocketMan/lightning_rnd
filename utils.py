@@ -4,9 +4,10 @@ import numpy as np
 import torch
 from torch._six import inf
 
+from config import default_config
 
-lamb = float(default_config['Lambda'])
-train_method = default_config['TrainMethod']
+
+LAMBDA = float(default_config['PPOAdvLambda'])
 
 
 def make_train_data(reward, done, value, gamma, num_step, num_worker):
@@ -15,7 +16,7 @@ def make_train_data(reward, done, value, gamma, num_step, num_worker):
     generalized_advanced_estimation = np.zeros_like([num_worker, ])
     for t in range(num_step - 1, -1, -1):
         delta = -value[:, t] + reward[:, t] + gamma * value[:, t + 1] * (1 - done[:, t])
-        generalized_advanced_estimation = delta + gamma * lamb * (1 - done[:, t]) * generalized_advanced_estimation
+        generalized_advanced_estimation = delta + gamma * LAMBDA * (1 - done[:, t]) * generalized_advanced_estimation
         discounted_return[:, t] = generalized_advanced_estimation + value[:, t]
     advantage = discounted_return - value[:, :-1]
     return discounted_return.reshape([-1]), advantage.reshape([-1])

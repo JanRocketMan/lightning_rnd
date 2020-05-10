@@ -7,14 +7,13 @@ from abc import abstractmethod
 from collections import deque
 from copy import copy
 
-from torch.multiprocessing import Pipe, Process
+from torch.multiprocessing import Process
 
-from model import *
-from config import *
+from config import default_config
 from PIL import Image
 
-train_method = default_config['TrainMethod']
-max_step_per_episode = int(default_config['MaxStepPerEpisode'])
+
+MAX_STEPS_PER_EPISODE = default_config["MaxStepsPerEpisode"]
 
 
 class Environment(Process):
@@ -161,7 +160,7 @@ class AtariEnvironment(Environment):
 
             s, reward, done, info = self.env.step(action)
 
-            if max_step_per_episode < self.steps:
+            if self.steps >= MAX_STEPS_PER_EPISODE:
                 done = True
 
             log_reward = reward
