@@ -25,7 +25,7 @@ class ParallelEnvironmentRunner:
         self.child_conns = []
 
         self.reset_stored_data()
-
+        # obs_rms
         self.observation_stats = RunningMeanStd(
             shape=(1, 1, IMAGE_HEIGHT, IMAGE_WIDTH)
         )
