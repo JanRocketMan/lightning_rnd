@@ -154,7 +154,9 @@ class RNDTrainer:
 
                 c_loader = self.pack_to_dataloader(
                     ext_target, int_target, total_adv, 
-                    self.env_runner.preprocess_obs(self.stored_data["next_states"])
+                    self.env_runner.preprocess_obs(
+                        self.stored_data["next_states"].reshape(-1, 4, 84, 84)
+                    )
                 )
 
             self.train_step(c_loader)
@@ -165,20 +167,16 @@ class RNDTrainer:
     def pack_to_dataloader(self, ext_target, int_target, total_adv, next_states):
         from torch.utils import data
 
-        states_tensor = torch.FloatTensor(self.stored_data["states"]).view(
-            -1, 4, 84, 84
-        )
-        actions_tensor = torch.LongTensor(self.stored_data["actions"]).view(
-            -1
-        )
+        states_tensor = torch.FloatTensor(self.stored_data["states"].reshape(-1, 4, 84, 84))
+        actions_tensor = torch.LongTensor(self.stored_data["actions"].reshape(-1))
         ext_target, int_target, total_adv = [
             torch.FloatTensor(val) for val in [
                 ext_target, int_target, total_adv
             ]
         ]
         next_states_tensor = torch.FloatTensor(next_states)
-        policies_tensor = torch.FloatTensor(self.stored_data["policy"]).view(
-            self.stored_data["policy"].shape[0], -1
+        policies_tensor = torch.FloatTensor(
+            self.stored_data["policy"].reshape(-1, self.stored_data["policy"].shape[-1])
         )
 
         with torch.no_grad():

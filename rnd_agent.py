@@ -26,7 +26,7 @@ class RNDPPOAgent:
 
     def get_policy_log_prob(self, actions, policy):
         policy_dist = Categorical(torch.softmax(policy.to(self.device), dim=-1))
-        return policy_dist.log_prob(actions).cpu()
+        return policy_dist.log_prob(actions.to(self.device)).cpu()
 
     def get_intrinsic_reward(self, states):
         states = torch.FloatTensor(states).to(self.device)
@@ -57,9 +57,7 @@ class RNDPPOAgent:
         # Drop observations randomly
         mask = torch.FloatTensor(mse_diff.size(0)).uniform_() > UPDATE_PROP
         mask = mask.to(self.device)
-        return (mse_diff * mask).sum() / torch.max(
-            mask.sum(), torch.Tensor([1]).to(self.device)
-        )
+        return (mse_diff * mask).sum() / max(mask.sum().item(), 1)
 
     def ppo_loss(self, states, actions, ext_target, int_target, total_adv, log_prob_old):
         policy, value_ext, value_int = self.actor_critic_model(states)
