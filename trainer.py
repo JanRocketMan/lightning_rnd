@@ -23,11 +23,11 @@ SAVE_PATH = default_config["SavePath"]
 
 class RNDTrainer:
     def __init__(self, env_runner: ParallelEnvironmentRunner, agent: RNDPPOAgent,
-        logger: SummaryWriter
+        logger: SummaryWriter, device: str
     ):
         self.env_runner = env_runner
         self.num_workers = self.env_runner.num_workers
-        self.device = 'cpu'
+        self.device = device
 
         self.agent = agent.to(self.device)
         self.agent.device = self.device

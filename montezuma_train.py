@@ -10,6 +10,7 @@ from tensorboardX import SummaryWriter
 NUM_WORKERS = default_config["NumWorkers"]
 ENV_NAME = default_config["EnvName"]
 EPOCHS = default_config["NumEpochs"]
+USETPU = default_config["UseTPU"]
 
 
 def train_montezuma():
@@ -17,14 +18,23 @@ def train_montezuma():
     action_dim = env.action_space.n
     env.close()
 
+    if not USETPU:
+        device = 'cuda'
+    else:
+        device = 'none'
+
+    print("Initializing Environment Runner...")
     env_runner = ParallelEnvironmentRunner(NUM_WORKERS, action_dim)
-    agent = RNDPPOAgent(action_dim)
+    print("Done, initializing RNDTrainer...")
+    agent = RNDPPOAgent(action_dim, device=device)
     writer = SummaryWriter(logdir='./runs')
 
     trainer = RNDTrainer(
-        env_runner, agent, writer
+        env_runner, agent, writer, device
     )
+    print("Done, training")
     trainer.train(EPOCHS)
+    print("Finished!")
 
 
 if __name__ == '__main__':

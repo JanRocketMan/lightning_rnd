@@ -103,7 +103,7 @@ class ParallelEnvironmentRunner:
             def get_action(self, state):
                 return np.random.randint(
                     0, self.action_dim, size=(self.num_workers)
-                )
+                ), 0.0, 0.0, 0.0
         self.reset_stored_data()
         for _ in range(INIT_STEPS):
             _ = self.run_agent(

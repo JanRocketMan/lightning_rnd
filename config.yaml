@@ -26,3 +26,5 @@ RNDUpdateProportion: 0.25
 PPOEntropyCoeff: 0.001
 PPORewardEps: 0.1
 PPOAdvLambda: 0.95
+
+UseTPU: False

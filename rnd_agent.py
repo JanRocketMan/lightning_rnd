@@ -10,10 +10,10 @@ ENT_COEFF = default_config["PPOEntropyCoeff"]
 PPO_EPS = default_config["PPORewardEps"]
 
 class RNDPPOAgent:
-    def __init__(self, action_dim):
+    def __init__(self, action_dim, device):
         self.actor_critic_model = CNNPolicyNet(action_dim)
         self.rnd_model = RNDNet()
-        self.device = 'cpu'
+        self.device = device
         self.mse_crit = torch.nn.MSELoss(reduction='none')
 
     def get_action(self, states):
