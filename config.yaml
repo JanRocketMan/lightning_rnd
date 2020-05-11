@@ -10,8 +10,8 @@ IntrinsicRewardDiscount: 0.99
 NumInitSteps: 6400
 
 RolloutSteps: 128
-ExtGamma: 0.999
-IntGamma: 0.99
+ExtRewardDiscount: 0.999
+IntRewardDiscount: 0.99
 ExtCoeff: 2.0
 IntCoeff: 1.0
 LearningRate: 0.0001

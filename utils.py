@@ -10,13 +10,14 @@ from config import default_config
 LAMBDA = float(default_config['PPOAdvLambda'])
 
 
-def make_train_data(reward, done, value, gamma, num_step, num_worker):
-    discounted_return = np.empty([num_worker, num_step])
+def make_train_data(reward, done, value, discount, num_steps, num_workers):
+    discounted_return = np.empty([num_workers, num_steps])
     # PPO Discounted Return 
-    generalized_advanced_estimation = np.zeros_like([num_worker, ])
-    for t in range(num_step - 1, -1, -1):
-        delta = -value[:, t] + reward[:, t] + gamma * value[:, t + 1] * (1 - done[:, t])
-        generalized_advanced_estimation = delta + gamma * LAMBDA * (1 - done[:, t]) * generalized_advanced_estimation
+    generalized_advanced_estimation = np.zeros((num_workers))
+
+    for t in range(num_steps - 1, -1, -1):
+        delta = -value[:, t] + reward[:, t] + discount * value[:, t + 1] * (1 - done[:, t])
+        generalized_advanced_estimation = delta + discount * LAMBDA * (1 - done[:, t]) * generalized_advanced_estimation
         discounted_return[:, t] = generalized_advanced_estimation + value[:, t]
     advantage = discounted_return - value[:, :-1]
     return discounted_return.reshape([-1]), advantage.reshape([-1])

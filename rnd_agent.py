@@ -20,16 +20,15 @@ class RNDPPOAgent:
         states = torch.FloatTensor(states).to(self.device)
 
         policy, value_ext, value_int = self.actor_critic_model(states)
-        action_prob = torch.softmax(policy, dim=-1).cpu().numpy()
-        action = Categorical(action_prob).sample()
+        action = Categorical(torch.softmax(policy, dim=-1)).sample()
 
-        return [val.cpu().numpy() for val in [action, value_ext, value_int, policy]]
+        return [val.cpu().numpy() for val in [action, value_ext.squeeze(), value_int.squeeze(), policy]]
 
     def get_policy_log_prob(self, actions, policy):
         policy_dist = Categorical(torch.softmax(policy.to(self.device), dim=-1))
         return policy_dist.log_prob(actions).cpu()
 
-    def compute_intrinsic_reward(self, states):
+    def get_intrinsic_reward(self, states):
         states = torch.FloatTensor(states).to(self.device)
 
         int_reward = (

@@ -44,7 +44,7 @@ class ParallelEnvironmentRunner:
 
     def preprocess_obs(self, some_states):
         return np.clip(
-            (some_states[:, 3, :, :] - self.observation_stats.mean) /\
+            (some_states[:, 3, :, :].reshape(-1, 1, IMAGE_HEIGHT, IMAGE_WIDTH) - self.observation_stats.mean) /\
                 self.observation_stats.std, -5, 5
         )
 
@@ -67,7 +67,9 @@ class ParallelEnvironmentRunner:
             self.stored_data['real_dones'][j] = real_done
 
         if update_stats:
-            self.observation_stats.update(self.stored_data['next_states'])
+            self.observation_stats.update(
+                self.stored_data['next_states'][:, 3, :, :].reshape(-1, 1, IMAGE_HEIGHT, IMAGE_WIDTH)
+            )
 
         ret_dict = self.stored_data
         ret_dict["actions"] = actions

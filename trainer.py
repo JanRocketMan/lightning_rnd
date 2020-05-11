@@ -10,8 +10,8 @@ from utils import RewardForwardFilter, RunningMeanStd, make_train_data
 
 INT_REWARD_DISCOUNT = default_config["IntrinsicRewardDiscount"]
 ROLLOUT_STEPS = default_config["RolloutSteps"]
-EXT_GAMMA = default_config["ExtGamma"]
-INT_GAMMA = default_config["IntGamma"]
+EXT_DISCOUNT = default_config["ExtRewardDiscount"]
+INT_DISCOUNT = default_config["IntRewardDiscount"]
 EXT_COEFF = default_config["ExtCoeff"]
 INT_COEFF = default_config["IntCoeff"]
 LEARNING_RATE = default_config["LearningRate"]
@@ -29,7 +29,8 @@ class RNDTrainer:
         self.num_workers = self.env_runner.num_workers
         self.device = device
 
-        self.agent = agent.to(self.device)
+        self.agent = agent
+        self.agent.to(self.device)
         self.agent.device = self.device
         self.agent_optimizer = Adam(
             [p for p in self.agent.parameters() if p.requires_grad], lr=LEARNING_RATE
@@ -53,7 +54,7 @@ class RNDTrainer:
     def reset_rollout_data(self):
         self.stored_data = {
             key: [] for key in [
-                'states', 'next_states', 'rewards', 'dones',
+                'states', 'next_states', 'rewards', 'dones', 'real_dones',
                 'actions', 'ext_value', 'int_value', 'policy',
                 'intrinsic_reward'
             ]
@@ -70,7 +71,7 @@ class RNDTrainer:
             for key in ['ext_value', 'int_value']:
                 self.stored_data[key].append(result[key])
             if step < ROLLOUT_STEPS:
-                self.log_reward += result["reward"][self.logged_worker_id]
+                self.log_reward += result["rewards"][self.logged_worker_id]
                 self.log_steps += 1
                 for key in result.keys() - ['ext_value', 'int_value', 'states']:
                     self.stored_data[key].append(result[key])
@@ -139,14 +140,14 @@ class RNDTrainer:
 
                 ext_target, ext_adv = make_train_data(
                     self.stored_data["rewards"], self.stored_data["dones"],
-                    self.stored_data["ext_value"], EXT_GAMMA,
+                    self.stored_data["ext_value"], EXT_DISCOUNT,
                     ROLLOUT_STEPS, self.num_workers
                 )
                 int_target, int_adv = make_train_data(
                     self.stored_data["intrinsic_reward"], np.zeros_like(
                         self.stored_data["intrinsic_reward"]
                     ),
-                    self.stored_data["int_value"], INT_GAMMA,
+                    self.stored_data["int_value"], INT_DISCOUNT,
                     ROLLOUT_STEPS, self.num_workers
                 )
                 total_adv = INT_COEFF * int_adv + EXT_COEFF * ext_adv
