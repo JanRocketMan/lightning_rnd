@@ -30,8 +30,6 @@ class RNDTrainer:
         self.device = device
 
         self.agent = agent
-        self.agent.to(self.device)
-        self.agent.device = self.device
         self.agent_optimizer = Adam(
             [p for p in self.agent.parameters() if p.requires_grad], lr=LEARNING_RATE
         )
