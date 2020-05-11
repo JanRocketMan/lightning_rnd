@@ -1,18 +1,20 @@
 import torch
 from torch.distributions.categorical import Categorical
 
+from config import default_config
 from models import CNNPolicyNet, RNDNet
 
 
+UPDATE_PROP = default_config["RNDUpdateProportion"]
+ENT_COEFF = default_config["PPOEntropyCoeff"]
+PPO_EPS = default_config["PPORewardEps"]
+
 class RNDPPOAgent:
-    def __init__(self, action_dim, update_prop, entropy_coeff, ppo_eps):
+    def __init__(self, action_dim):
         self.actor_critic_model = CNNPolicyNet(action_dim)
         self.rnd_model = RNDNet()
         self.device = 'cpu'
         self.mse_crit = torch.nn.MSELoss(reduction='none')
-        self.update_proportion = update_prop
-        self.ent_coeff = entropy_coeff
-        self.ppo_eps = ppo_eps
 
     def get_action(self, states):
         states = torch.FloatTensor(states).to(self.device)
@@ -49,12 +51,12 @@ class RNDPPOAgent:
             log_prob_old
         )
 
-        return curiosity_loss + actor_loss + critic_loss - self.ent_coeff * entropy
+        return curiosity_loss + actor_loss + critic_loss - ENT_COEFF * entropy
 
     def rnd_loss(self, predict_feats, rand_feats):
         mse_diff = self.mse_crit(predict_feats, rand_feats.detach()).sum(-1)
-        # Drop random observations
-        mask = torch.FloatTensor(mse_diff.size(0)).uniform_() > self.update_proportion
+        # Drop observations randomly
+        mask = torch.FloatTensor(mse_diff.size(0)).uniform_() > UPDATE_PROP
         mask = mask.to(self.device)
         return (mse_diff * mask).sum() / torch.max(
             mask.sum(), torch.Tensor([1]).to(self.device)
@@ -69,7 +71,7 @@ class RNDPPOAgent:
         ratio = torch.exp(log_prob - log_prob_old)
         actor_loss = -torch.min(
             ratio * total_adv,
-            torch.clamp(ratio, 1.0 - self.ppo_eps, 1.0 + self.ppo_eps) * total_adv
+            torch.clamp(ratio, 1.0 - PPO_EPS, 1.0 + PPO_EPS) * total_adv
         ).mean()
         critic_ext_loss = self.mse_crit(value_ext.sum(1), ext_target).mean()
         critic_int_loss = self.mse_crit(value_int.sum(1), int_target).mean()

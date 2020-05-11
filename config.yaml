@@ -1,22 +1,28 @@
 EnvName: MontezumaRevengeNoFrameskip-v4
 MaxStepsPerEpisode: 4500
-LearningRate: 1e-4
-NumEnv: 128
-NumStep: 128
-Gamma: 0.999
+ImageHeight: 84
+ImageWidth: 84
+UseStickyAction: True
+StickyActionProb: 0.25
+
+NumWorkers: 128
+IntrinsicRewardDiscount: 0.99
+NumInitSteps: 6400
+
+RolloutSteps: 128
+ExtGamma: 0.999
 IntGamma: 0.99
+ExtCoeff: 2.0
+IntCoeff: 1.0
+LearningRate: 0.0001
+ClipGradNorm: 1.0
+BatchSize: 4
+EpochSteps: 4
+SavePath: "/home/chervontsev/checkpoints/RndAgent.ckpt"
+
+NumEpochs: 1000
+
+RNDUpdateProportion: 0.25
+PPOEntropyCoeff: 0.001
+PPORewardEps: 0.1
 PPOAdvLambda: 0.95
-StableEps: 1e-8
-StateStackSize : 4
-EnvHeight : 84
-EnvWidth : 84
-ClipGradNorm : 0.5
-EntropyRate : 0.001
-NumEpochs : 4
-MiniBatch : 4
-PPOEps : 0.1
-IntCoef : 1.
-StickyAction : True
-ActionProb : 0.25
-UpdateProportion : 0.25
-ObsNormStep : 50

@@ -11,21 +11,19 @@ STICKY_ACTION = default_config["UseStickyAction"]
 STICKY_ACTION_PROB = default_config["StickyActionProb"]
 IMAGE_HEIGHT = default_config["ImageHeight"]
 IMAGE_WIDTH = default_config["ImageWidth"]
-REWARD_DISCOUNT = default_config["RewardDiscount"]
 INIT_STEPS = default_config["NumInitSteps"]
-ACTION_DIM = default_config["NumActions"]
 
 
 class ParallelEnvironmentRunner:
-    def __init__(self, num_workers, render_envs=False):
+    def __init__(self, num_workers, action_dim, render_envs=False):
         self.num_workers = num_workers
         self.render_envs = render_envs
+        self.action_dim = action_dim
         self.all_works = []
         self.parent_conns = []
         self.child_conns = []
 
-        self.reset_stored_data()
-        # obs_rms
+        # Normalization statistics
         self.observation_stats = RunningMeanStd(
             shape=(1, 1, IMAGE_HEIGHT, IMAGE_WIDTH)
         )
@@ -51,6 +49,8 @@ class ParallelEnvironmentRunner:
         )
 
     def run_agent(self, agent, states, compute_int_reward=False, update_stats=True):
+        self.reset_stored_data()
+
         actions, ext_value, int_value, policy = agent.get_action(
             states / 255
         )
@@ -97,16 +97,17 @@ class ParallelEnvironmentRunner:
 
     def __init_obs_stats(self):
         class DummyAgent:
-            def __init__(self, num_workers):
+            def __init__(self, num_workers, action_dim):
                 self.num_workers = num_workers
+                self.action_dim = action_dim
             def get_action(self, state):
                 return np.random.randint(
-                    0, ACTION_DIM, size=(self.num_workers)
+                    0, self.action_dim, size=(self.num_workers)
                 )
-
+        self.reset_stored_data()
         for _ in range(INIT_STEPS):
             _ = self.run_agent(
-                DummyAgent(self.num_workers),
+                DummyAgent(self.num_workers, self.action_dim),
                 self.stored_data['next_states']
             )
         self.reset_stored_data()

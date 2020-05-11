@@ -1,15 +1,15 @@
 import numpy as np
 import torch
 from torch.optim import Adam
+from tensorboardX import SummaryWriter
 
 from config import default_config
 from env_runner import ParallelEnvironmentRunner
 from rnd_agent import RNDPPOAgent
 from utils import RewardForwardFilter, RunningMeanStd, make_train_data
 
-REWARD_DISCOUNT = default_config["RewardDiscount"]
+INT_REWARD_DISCOUNT = default_config["IntrinsicRewardDiscount"]
 ROLLOUT_STEPS = default_config["RolloutSteps"]
-ACTION_DIM = default_config["NumActions"]
 EXT_GAMMA = default_config["ExtGamma"]
 INT_GAMMA = default_config["IntGamma"]
 EXT_COEFF = default_config["ExtCoeff"]
@@ -17,10 +17,14 @@ INT_COEFF = default_config["IntCoeff"]
 LEARNING_RATE = default_config["LearningRate"]
 CLIP_GRAD_NORM = default_config["ClipGradNorm"]
 BATCH_SIZE = default_config["BatchSize"]
+EPOCH_STEPS = default_config["EpochSteps"]
+SAVE_PATH = default_config["SavePath"]
 
 
 class RNDTrainer:
-    def __init__(self, env_runner: ParallelEnvironmentRunner, agent: RNDPPOAgent):
+    def __init__(self, env_runner: ParallelEnvironmentRunner, agent: RNDPPOAgent,
+        logger: SummaryWriter
+    ):
         self.env_runner = env_runner
         self.num_workers = self.env_runner.num_workers
         self.device = 'cpu'
@@ -31,16 +35,20 @@ class RNDTrainer:
             [p for p in self.agent.parameters() if p.requires_grad], lr=LEARNING_RATE
         )
 
+        self.logger = logger
         self.current_states = self.env_runner.stored_data["next_states"]
         self.reset_rollout_data()
 
         self.reward_stats = RunningMeanStd()
-        self.disc_reward = RewardForwardFilter(REWARD_DISCOUNT)
+        self.disc_reward = RewardForwardFilter(INT_REWARD_DISCOUNT)
 
         self.n_steps = 0
         self.n_updates = 0
-        self.epoch_steps = 4
-        self.agent_path = "test.ckpt"
+
+        self.logged_worker_id = 0
+        self.log_reward = 0.0
+        self.log_steps = 0
+        self.log_episode = 0
 
     def reset_rollout_data(self):
         self.stored_data = {
@@ -62,14 +70,26 @@ class RNDTrainer:
             for key in ['ext_value', 'int_value']:
                 self.stored_data[key].append(result[key])
             if step < ROLLOUT_STEPS:
+                self.log_reward += result["reward"][self.logged_worker_id]
+                self.log_steps += 1
                 for key in result.keys() - ['ext_value', 'int_value', 'states']:
                     self.stored_data[key].append(result[key])
                 self.stored_data['states'].append(self.current_states)
                 self.current_states = result['next_states']
+
             # Log stats
-            if False:
-                # Todo - add TB logging
-                pass
+            if result['real_dones'][self.logged_worker_id]:
+                self.log_episode += 1
+                self.logger.add_scalar(
+                    'data/reward_per_episode', self.log_reward, self.log_episode
+                )
+                self.logger.add_scalar(
+                    'data/reward_per_steps', self.log_reward, self.n_steps
+                )
+                self.logger.add_scalar(
+                    'data/num_steps', self.log_steps, self.log_episode
+                )
+                self.log_reward, self.log_steps = 0.0, 0
 
         # Transpose data s.t. first dim corresponds to num_workers
         for key in self.stored_data.keys():
@@ -100,9 +120,22 @@ class RNDTrainer:
 
                 self.normalize_intrinsic_rewards()
 
-                if False:
-                    # Todo - add TB logging
-                    pass
+                self.logger.add_scalar(
+                    'data/intrinsic_reward_per_episode', np.sum(
+                        self.stored_data["intrinsic_reward"] / self.num_workers
+                    ), self.log_episode
+                )
+                self.logger.add_scalar(
+                    "data/intrinsic_reward_per_rollout", np.sum(
+                        self.stored_data["intrinsic_reward"] / self.num_workers
+                    ), self.n_updates
+                )
+                self.logger.add_scalar(
+                    "data/max_probability_per_episode",
+                    torch.softmax(
+                        torch.from_numpy(self.stored_data["policy"]), -1
+                    ).max(1)[0].mean().item(), self.log_episode
+                )
 
                 ext_target, ext_adv = make_train_data(
                     self.stored_data["rewards"], self.stored_data["dones"],
@@ -126,7 +159,7 @@ class RNDTrainer:
             self.train_step(c_loader)
 
             if self.n_steps % (self.num_workers * ROLLOUT_STEPS * 100) == 0:
-                torch.save(self.state_dict, self.agent_path)
+                torch.save(self.state_dict, SAVE_PATH)
 
     def pack_to_dataloader(self, ext_target, int_target, total_adv, next_states):
         from torch.utils import data
@@ -156,10 +189,10 @@ class RNDTrainer:
             states_tensor, actions_tensor, ext_target, int_target, total_adv,
             next_states_tensor, log_prob_old
         )
-        return data.DataLoader(current_data, batch_size=BATCH_SIZE)
+        return data.DataLoader(current_data, batch_size=BATCH_SIZE, num_workers=4)
 
     def train_step(self, dataloader):
-        for i in range(self.epoch_steps):
+        for i in range(EPOCH_STEPS):
             for data in dataloader:
                 data = [dt.to(self.device) for dt in data]
 
