@@ -81,8 +81,12 @@ class RNDNet(nn.Module):
         for param in self.random_net.parameters():
             param.requires_grad_(False)
 
-    def forward(self, next_states):
-        return [net(next_states) for net in [self.distill_net, self.random_net]]
+    def forward(self, states):
+        return [net(states) for net in [self.distill_net, self.random_net]]
+
+    def get_difference(self, states):
+        distill_pred, random_pred = self.forward(states)
+        return (distill_pred - random_pred)
 
 
 if __name__ == '__main__':
