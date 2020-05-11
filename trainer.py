@@ -1,9 +1,10 @@
 import numpy as np
 import torch
-import gym
+from torch.optim import Adam
 
 from config import default_config
 from env_runner import ParallelEnvironmentRunner
+from rnd_agent import RNDPPOAgent
 from utils import RewardForwardFilter, RunningMeanStd, make_train_data
 
 REWARD_DISCOUNT = default_config["RewardDiscount"]
@@ -13,12 +14,19 @@ EXT_GAMMA = default_config["ExtGamma"]
 INT_GAMMA = default_config["IntGamma"]
 EXT_COEFF = default_config["ExtCoeff"]
 INT_COEFF = default_config["IntCoeff"]
+LEARNING_RATE = default_config["LearningRate"]
+CLIP_GRAD_NORM = default_config["ClipGradNorm"]
 
 class RNDTrainer:
-    def __init__(self, env_runner: ParallelEnvironmentRunner, agent):
+    def __init__(self, env_runner: ParallelEnvironmentRunner, agent: RNDPPOAgent):
         self.env_runner = env_runner
         self.num_workers = self.env_runner.num_workers
-        self.agent = agent
+        self.device = 'cpu'
+
+        self.agent = agent.to(self.device)
+        self.agent_optimizer = Adam(
+            [p for p in self.agent.parameters() if p.requires_grad], lr=LEARNING_RATE
+        )
 
         self.current_states = self.env_runner.stored_data["next_states"]
         self.reset_rollout_data()
@@ -28,7 +36,7 @@ class RNDTrainer:
 
         self.n_steps = 0
         self.n_updates = 0
-        self.device = 'cpu'
+        self.epoch_steps = 4
 
     def reset_rollout_data(self):
         self.stored_data = {
@@ -103,34 +111,53 @@ class RNDTrainer:
                 )
                 total_adv = INT_COEFF * int_adv + EXT_COEFF * ext_adv
 
-            self.train_step(
-                ext_target, int_target, total_adv, 
-                self.env_runner.preprocess_obs(self.stored_data["next_states"])
-            )
+                c_loader = self.pack_to_dataloader(
+                    ext_target, int_target, total_adv, 
+                    self.env_runner.preprocess_obs(self.stored_data["next_states"])
+                )
 
-    def train_step(self, ext_target, int_target, total_adv, next_states):
+            self.train_step(c_loader)
+
+    def pack_to_dataloader(self, ext_target, int_target, total_adv, next_states):
+        from torch.utils import data
+
         states_tensor = torch.FloatTensor(self.stored_data["states"]).view(
             -1, 4, 84, 84
-        ).to(self.device)
+        )
         actions_tensor = torch.LongTensor(self.stored_data["actions"]).view(
             -1
-        ).to(self.device)
+        )
         ext_target, int_target, total_adv = [
-            torch.FloatTensor(val).to(self.device) for val in [
+            torch.FloatTensor(val) for val in [
                 ext_target, int_target, total_adv
             ]
         ]
-        next_states_tensor = torch.FloatTensor(next_states).to(self.device)
+        next_states_tensor = torch.FloatTensor(next_states)
         policies_tensor = torch.FloatTensor(self.stored_data["policy"]).view(
             self.stored_data["policy"].shape[0], -1
-        ).to(self.device)
+        )
 
         with torch.no_grad():
             log_prob_old = self.agent.get_policy_log_prob(
-                policies_tensor
+                actions_tensor, policies_tensor
             )
 
-        for i in range(self.epoch_steps):
-            # TODO: add ppo + rnd losses comp
-            pass
+        current_data = data.TensorDataset(
+            states_tensor, actions_tensor, ext_target, int_target, total_adv,
+            next_states_tensor, log_prob_old
+        )
+        return data.DataLoader(current_data)
 
+    def train_step(self, dataloader):
+        for i in range(self.epoch_steps):
+            for data in dataloader:
+                data = [dt.to(self.device) for dt in data]
+
+                self.agent_optimizer.zero_grad()
+                loss = self.agent.get_loss(data)
+                loss.backward()
+                torch.nn.utils.clip_grad_norm_(
+                    [p for p in self.agent.parameters() if p.requires_grad],
+                    CLIP_GRAD_NORM
+                )
+                self.agent_optimizer.step()
