@@ -29,8 +29,6 @@ class ParallelEnvironmentRunner:
         self.observation_stats = RunningMeanStd(
             shape=(1, 1, IMAGE_HEIGHT, IMAGE_WIDTH)
         )
-        self.reward_stats = RunningMeanStd()
-        self.disc_reward = RewardForwardFilter(REWARD_DISCOUNT)
 
         self.__init_workers()
         self.__init_obs_stats()
@@ -64,7 +62,7 @@ class ParallelEnvironmentRunner:
             new_state, reward, done, real_done = parent_conn.recv()
 
             self.stored_data['next_states'][j] = new_state
-            self.stored_data['rewards'][j] = reward
+            self.stored_data['rewards'][j] = np.clip(reward, -1, 1)
             self.stored_data['dones'][j] = done
             self.stored_data['real_dones'][j] = real_done
 
