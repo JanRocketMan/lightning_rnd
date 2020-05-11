@@ -16,6 +16,8 @@ EXT_COEFF = default_config["ExtCoeff"]
 INT_COEFF = default_config["IntCoeff"]
 LEARNING_RATE = default_config["LearningRate"]
 CLIP_GRAD_NORM = default_config["ClipGradNorm"]
+BATCH_SIZE = default_config["BatchSize"]
+
 
 class RNDTrainer:
     def __init__(self, env_runner: ParallelEnvironmentRunner, agent: RNDPPOAgent):
@@ -24,6 +26,7 @@ class RNDTrainer:
         self.device = 'cpu'
 
         self.agent = agent.to(self.device)
+        self.agent.device = self.device
         self.agent_optimizer = Adam(
             [p for p in self.agent.parameters() if p.requires_grad], lr=LEARNING_RATE
         )
@@ -146,7 +149,7 @@ class RNDTrainer:
             states_tensor, actions_tensor, ext_target, int_target, total_adv,
             next_states_tensor, log_prob_old
         )
-        return data.DataLoader(current_data)
+        return data.DataLoader(current_data, batch_size=BATCH_SIZE)
 
     def train_step(self, dataloader):
         for i in range(self.epoch_steps):
