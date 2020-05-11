@@ -37,7 +37,8 @@ class RNDPPOAgent:
     def get_intrinsic_reward(self, states):
         states = torch.FloatTensor(states).to(self.device)
 
-        int_reward = self.rnd_model.get_difference(states).pow(2).sum(1) / 2
+        distill_preds, random_preds = self.rnd_model(states)
+        int_reward = (distill_preds - random_preds).pow(2).sum(1) / 2
 
         return int_reward.cpu().numpy()
 

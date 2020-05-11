@@ -84,11 +84,6 @@ class RNDNet(nn.Module):
     def forward(self, states):
         return [net(states) for net in [self.distill_net, self.random_net]]
 
-    def get_difference(self, states):
-        distill_pred, random_pred = self.forward(states)
-        return (distill_pred - random_pred)
-
-
 if __name__ == '__main__':
     import torch
 
