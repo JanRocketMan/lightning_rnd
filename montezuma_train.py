@@ -27,7 +27,7 @@ def train_montezuma():
     env_runner = ParallelEnvironmentRunner(NUM_WORKERS, action_dim)
     print("Done, initializing RNDTrainer...")
     agent = RNDPPOAgent(action_dim, device=device)
-    writer = SummaryWriter(logdir='./runs')
+    writer = SummaryWriter()
 
     trainer = RNDTrainer(
         env_runner, agent, writer, device

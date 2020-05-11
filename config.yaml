@@ -15,12 +15,12 @@ IntRewardDiscount: 0.99
 ExtCoeff: 2.0
 IntCoeff: 1.0
 LearningRate: 0.0001
-ClipGradNorm: 1.0
+ClipGradNorm: 10.0
 BatchSize: 4
 EpochSteps: 4
 SavePath: "/home/chervontsev/checkpoints/RndAgent.ckpt"
 
-NumEpochs: 1000
+NumEpochs: 5000
 
 RNDUpdateProportion: 0.25
 PPOEntropyCoeff: 0.001

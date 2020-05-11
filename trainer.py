@@ -100,13 +100,14 @@ class RNDTrainer:
         # Normalize states
         self.stored_data["states"] /= 255.0
 
-    def normalize_intrinsic_rewards(self):
+    def normalize_rewards(self):
         rewards_per_worker = np.array([
             self.disc_reward.update(reward_per_step) for
             reward_per_step in self.stored_data["intrinsic_reward"].T
         ]).reshape(-1)
         self.reward_stats.update(rewards_per_worker)
         self.stored_data["intrinsic_reward"] /= (self.reward_stats.std + 1e-6)
+        self.stored_data["rewards"] = np.clip(self.stored_data["rewards"], -1, 1)
 
     def train(self, num_epochs, state_dict=None):
         if state_dict is not None:
@@ -119,7 +120,7 @@ class RNDTrainer:
             with torch.no_grad():
                 self.accumulate_rollout_data()
 
-                self.normalize_intrinsic_rewards()
+                self.normalize_rewards()
 
                 self.logger.add_scalar(
                     'data/intrinsic_reward_per_episode', np.sum(
@@ -188,7 +189,7 @@ class RNDTrainer:
             states_tensor, actions_tensor, ext_target, int_target, total_adv,
             next_states_tensor, log_prob_old
         )
-        return data.DataLoader(current_data, batch_size=BATCH_SIZE, num_workers=4)
+        return data.DataLoader(current_data, batch_size=BATCH_SIZE, num_workers=8)
 
     def train_step(self, dataloader):
         for i in range(EPOCH_STEPS):
