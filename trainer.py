@@ -40,6 +40,7 @@ class RNDTrainer:
         self.n_steps = 0
         self.n_updates = 0
         self.epoch_steps = 4
+        self.agent_path = "test.ckpt"
 
     def reset_rollout_data(self):
         self.stored_data = {
@@ -86,7 +87,10 @@ class RNDTrainer:
         self.reward_stats.update(rewards_per_worker)
         self.stored_data["intrinsic_reward"] /= (self.reward_stats.std + 1e-6)
 
-    def train(self, num_epochs):
+    def train(self, num_epochs, state_dict=None):
+        if state_dict is not None:
+            self.load_state_dict(state_dict)
+
         for k in range(num_epochs):
             self.n_steps += (self.env_runner.num_workers * ROLLOUT_STEPS)
             self.n_updates += 1
@@ -120,6 +124,9 @@ class RNDTrainer:
                 )
 
             self.train_step(c_loader)
+
+            if self.n_steps % (self.num_workers * ROLLOUT_STEPS * 100) == 0:
+                torch.save(self.state_dict, self.agent_path)
 
     def pack_to_dataloader(self, ext_target, int_target, total_adv, next_states):
         from torch.utils import data
@@ -164,3 +171,27 @@ class RNDTrainer:
                     CLIP_GRAD_NORM
                 )
                 self.agent_optimizer.step()
+
+    def state_dict(self):
+        return {
+            "Agent": self.agent.state_dict(),
+            "Optimizer": self.agent_optimizer.state_dict(),
+            "Current_States": self.current_states,
+            "Reward_Stats": [self.reward_stats.mean, self.reward_stats.var],
+            "EnvObs_Stats": [
+                self.env_runner.observation_stats.mean,
+                self.env_runner.observation_stats.var
+            ],
+            "N_Steps": self.n_steps,
+            "N_Updates": self.n_updates
+        }
+
+    def load_state_dict(self, state_dict):
+        self.agent.load_state_dict(state_dict["Agent"])
+        self.agent_optimizer.load_state_dict(state_dict["Optimizer"])
+        self.current_states = state_dict["Current_States"]
+        self.reward_stats.mean, self.reward_stats.var = state_dict["Reward_Stats"]
+        self.env_runner.observation_stats.mean, \
+            self.env_runner.observation_stats.var = state_dict["EnvObs_Stats"]
+        self.n_steps = state_dict["N_Steps"]
+        self.n_updates = state_dict["N_Updates"]

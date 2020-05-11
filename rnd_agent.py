@@ -84,3 +84,13 @@ class RNDPPOAgent:
     def to(self, device):
         self.rnd_model.to(device)
         self.actor_critic_model.to(device)
+
+    def state_dict(self):
+        return {
+            "RNDModel": self.rnd_model.state_dict(),
+            "ActorCritic": self.actor_critic_model.state_dict()
+        }
+
+    def load_state_dict(self, state_dict):
+        self.rnd_model.load_state_dict(state_dict["RNDModel"])
+        self.actor_critic_model.load_state_dict(state_dict["ActorCritic"])
