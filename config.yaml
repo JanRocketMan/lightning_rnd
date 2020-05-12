@@ -16,7 +16,7 @@ ExtCoeff: 2.0
 IntCoeff: 1.0
 LearningRate: 0.0001
 ClipGradNorm: 10.0
-BatchSize: 4
+BatchSize: 4096
 EpochSteps: 4
 SavePath: "/home/chervontsev/checkpoints/RndAgent.ckpt"
 
