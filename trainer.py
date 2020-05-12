@@ -102,7 +102,7 @@ class RNDTrainer:
         rewards_per_worker = np.array([
             self.disc_reward.update(reward_per_step) for
             reward_per_step in self.stored_data["intrinsic_reward"].T
-        ]).reshape(-1)
+        ])
         self.reward_stats.update(rewards_per_worker)
         self.stored_data["intrinsic_reward"] /= (self.reward_stats.std + 1e-6)
         self.stored_data["rewards"] = np.clip(self.stored_data["rewards"], -1, 1)
