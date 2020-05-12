@@ -60,7 +60,7 @@ class RNDPPOAgent:
     def rnd_loss(self, predict_feats, rand_feats):
         mse_diff = self.mse_crit(predict_feats, rand_feats.detach()).mean(-1)
         # Drop observations randomly
-        mask = torch.FloatTensor(mse_diff.size(0)).uniform_() > UPDATE_PROP
+        mask = torch.FloatTensor(mse_diff.size(0)).uniform_() < UPDATE_PROP
         mask = mask.to(self.device)
         return (mse_diff * mask).sum() / max(mask.sum().item(), 1)
 
