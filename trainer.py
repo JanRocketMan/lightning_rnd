@@ -223,7 +223,8 @@ class RNDTrainer:
                 self.env_runner.observation_stats.var
             ],
             "N_Steps": self.n_steps,
-            "N_Updates": self.n_updates
+            "N_Updates": self.n_updates,
+            "Log_Episodes": self.log_episode
         }
 
     def load_state_dict(self, state_dict):
@@ -235,3 +236,4 @@ class RNDTrainer:
             self.env_runner.observation_stats.var = state_dict["EnvObs_Stats"]
         self.n_steps = state_dict["N_Steps"]
         self.n_updates = state_dict["N_Updates"]
+        self.log_episode = state_dict["Log_Episodes"]
