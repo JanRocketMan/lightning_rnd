@@ -1,10 +1,11 @@
+import numpy as np
 import torch.nn as nn
 
 
-def ortho_init(model):
+def ortho_init(model, norm=0.01):
     for p in model.modules():
         if isinstance(p, nn.Conv2d) or isinstance(p, nn.Linear):
-            nn.init.orthogonal_(p.weight, 0.01)
+            nn.init.orthogonal_(p.weight, norm)
             nn.init.constant_(p.bias, 0.0)
 
 
@@ -41,7 +42,10 @@ class CNNPolicyNet(nn.Module):
             nn.Linear(self.hidden_dim, 2)
         )
 
-        ortho_init(self)
+        ortho_init(self.conv_features, np.sqrt(2))
+        ortho_init(self.dense_features, np.sqrt(2))
+        ortho_init(self.actor_model, 0.01)
+        ortho_init(self.critic_model, 0.01)
 
     def forward(self, states):
         z = self.conv_features(states).view(states.size(0), -1)
@@ -70,13 +74,12 @@ class RNDNet(nn.Module):
             nn.Conv2d(64, 64, 3, 1),
             self.nonlinearity,
             Flatten(),
-            nn.Linear(7 * 7 * 64, self.hidden_dim // 2),
+            nn.Linear(7 * 7 * 64, self.hidden_dim),
             self.nonlinearity,
-            nn.Linear(self.hidden_dim // 2, self.hidden_dim),
-            self.nonlinearity
+            nn.Linear(self.hidden_dim, self.hidden_dim)
         ) for _ in range(2)]
 
-        ortho_init(self)
+        ortho_init(self, np.sqrt(2))
 
         for param in self.random_net.parameters():
             param.requires_grad_(False)
