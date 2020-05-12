@@ -83,7 +83,7 @@ class RNDTrainer:
                     'data/reward_per_episode', self.log_reward, self.log_episode
                 )
                 self.logger.add_scalar(
-                    'data/reward_per_steps', self.log_reward, self.n_steps
+                    'data/reward_per_updates', self.log_reward, self.n_updates
                 )
                 self.logger.add_scalar(
                     'data/num_steps', self.log_steps, self.log_episode
@@ -161,7 +161,7 @@ class RNDTrainer:
             self.train_step(c_loader)
 
             if self.n_steps % (self.num_workers * ROLLOUT_STEPS * 100) == 0:
-                torch.save(self.state_dict, SAVE_PATH)
+                torch.save(self.state_dict(), SAVE_PATH)
 
     def pack_to_dataloader(self, ext_target, int_target, total_adv, next_states):
         from torch.utils import data
