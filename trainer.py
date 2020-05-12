@@ -7,6 +7,7 @@ from config import default_config
 from env_runner import ParallelEnvironmentRunner
 from rnd_agent import RNDPPOAgent
 from utils import RewardForwardFilter, RunningMeanStd, make_train_data
+import time
 
 INT_REWARD_DISCOUNT = default_config["IntrinsicRewardDiscount"]
 ROLLOUT_STEPS = default_config["RolloutSteps"]
@@ -110,14 +111,22 @@ class RNDTrainer:
     def train(self, num_epochs, state_dict=None):
         if state_dict is not None:
             self.load_state_dict(state_dict)
-
+        start_time = time.time()
+        global ROLLOUT_STEPS
+        #print("START TRAINING")
+        START_ROLLOUT_STEPS = ROLLOUT_STEPS
         for k in range(num_epochs):
+            if self.n_updates < 200:
+                ROLLOUT_STEPS = int(START_ROLLOUT_STEPS/10)
+            else:
+                ROLLOUT_STEPS = START_ROLLOUT_STEPS
             self.n_steps += (self.env_runner.num_workers * ROLLOUT_STEPS)
             self.n_updates += 1
 
             with torch.no_grad():
+                #print("ROLLOUT...", time.time() - start_time)
                 self.accumulate_rollout_data()
-
+                #print("NORMALIZE...", time.time() - start_time)
                 self.normalize_rewards()
 
                 self.logger.add_scalar(
@@ -136,7 +145,7 @@ class RNDTrainer:
                         torch.from_numpy(self.stored_data["policy"]), -1
                     ).max(1)[0].mean().item(), self.log_episode
                 )
-
+                #print("MAKE TRAIN...", time.time() - start_time)
                 ext_target, ext_adv = make_train_data(
                     self.stored_data["rewards"], self.stored_data["dones"],
                     self.stored_data["ext_value"], EXT_DISCOUNT,
@@ -150,14 +159,14 @@ class RNDTrainer:
                     ROLLOUT_STEPS, self.num_workers
                 )
                 total_adv = INT_COEFF * int_adv + EXT_COEFF * ext_adv
-
+                #print("PACK TO LOADER...", time.time() - start_time)
                 c_loader = self.pack_to_dataloader(
                     ext_target, int_target, total_adv, 
                     self.env_runner.preprocess_obs(
                         self.stored_data["next_states"].reshape(-1, 4, 84, 84)
                     )
                 )
-
+            #print("MAKE STEP...", time.time() - start_time)
             self.train_step(c_loader)
 
             if self.n_steps % (self.num_workers * ROLLOUT_STEPS * 100) == 0:
