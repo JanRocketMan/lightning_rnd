@@ -1,4 +1,5 @@
 import gym
+import torch
 
 from config import default_config
 from trainer import RNDTrainer
@@ -34,7 +35,7 @@ def train_montezuma():
         env_runner, agent, writer, device
     )
     print("Done, training")
-    trainer.train(EPOCHS, state_dict=STATE_DICT)
+    trainer.train(EPOCHS, state_dict=torch.load(STATE_DICT))
     print("Finished!")
 
 
