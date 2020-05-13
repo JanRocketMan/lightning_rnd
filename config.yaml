@@ -18,7 +18,8 @@ LearningRate: 0.0001
 ClipGradNorm: 10.0
 BatchSize: 4096
 EpochSteps: 4
-SavePath: "/home/chervontsev/checkpoints/RndAgent.ckpt"
+SavePath: "/home/iv-provilkov/lightning_rnd/checkpoints/RndAgent.ckpt"
+StateDict: "/home/iv-provilkov/lightning_rnd/checkpoints/RndAgent.ckpt"
 
 NumEpochs: 5000
 
@@ -27,4 +28,5 @@ PPOEntropyCoeff: 0.001
 PPORewardEps: 0.1
 PPOAdvLambda: 0.95
 
+OnlyIntrinsic: False
 UseTPU: False
