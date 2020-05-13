@@ -35,7 +35,11 @@ def train_montezuma():
         env_runner, agent, writer, device
     )
     print("Done, training")
-    trainer.train(EPOCHS, state_dict=torch.load(STATE_DICT))
+    if STATE_DICT is not None:
+        state_dict = torch.load(STATE_DICT)
+    else:
+        state_dict = None
+    trainer.train(EPOCHS, state_dict=state_dict)
     print("Finished!")
 
 
