@@ -11,6 +11,7 @@ NUM_WORKERS = default_config["NumWorkers"]
 ENV_NAME = default_config["EnvName"]
 EPOCHS = default_config["NumEpochs"]
 USETPU = default_config["UseTPU"]
+STATE_DICT = default_config.get("StateDict", None)
 
 
 def train_montezuma():
@@ -33,7 +34,7 @@ def train_montezuma():
         env_runner, agent, writer, device
     )
     print("Done, training")
-    trainer.train(EPOCHS)
+    trainer.train(EPOCHS, state_dict=STATE_DICT)
     print("Finished!")
 
 
