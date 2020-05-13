@@ -48,13 +48,7 @@ class ParallelEnvironmentRunner:
                 self.observation_stats.std, -5, 5
         )
 
-    def run_agent(self, agent, states, compute_int_reward=False, update_stats=True):
-        self.reset_stored_data()
-
-        actions, ext_value, int_value, policy = agent.get_action(
-            states / 255
-        )
-
+    def collect_results(self, actions):
         for parent_conn, action in zip(self.parent_conns, actions):
             parent_conn.send(action)
 
@@ -65,6 +59,15 @@ class ParallelEnvironmentRunner:
             self.stored_data['rewards'][j] = reward
             self.stored_data['dones'][j] = done
             self.stored_data['real_dones'][j] = real_done
+
+    def run_agent(self, agent, states, compute_int_reward=False, update_stats=True):
+        self.reset_stored_data()
+
+        actions, ext_value, int_value, policy = agent.get_action(
+            states / 255
+        )
+
+        self.collect_results(actions)
 
         if update_stats:
             self.observation_stats.update(

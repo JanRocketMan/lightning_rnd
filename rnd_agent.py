@@ -8,7 +8,6 @@ from models import CNNPolicyNet, RNDNet
 UPDATE_PROP = default_config["RNDUpdateProportion"]
 ENT_COEFF = default_config["PPOEntropyCoeff"]
 PPO_EPS = default_config["PPORewardEps"]
-ONLY_INTRINSIC = default_config.get("OnlyIntrinsic", False)
 
 class RNDPPOAgent:
     def __init__(self, action_dim, device):
@@ -50,8 +49,6 @@ class RNDPPOAgent:
         predict_feats, rand_feats = self.rnd_model(next_states)
 
         curiosity_loss = self.rnd_loss(predict_feats, rand_feats.detach())
-        if ONLY_INTRINSIC:
-            return curiosity_loss
 
         actor_loss, critic_loss, entropy = self.ppo_loss(
             states, actions, ext_target, int_target, total_adv,
