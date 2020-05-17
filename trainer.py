@@ -114,12 +114,12 @@ class RNDTrainer:
         start_time = time.time()
         global ROLLOUT_STEPS
         #print("START TRAINING")
-        START_ROLLOUT_STEPS = ROLLOUT_STEPS
+        #START_ROLLOUT_STEPS = ROLLOUT_STEPS
         for k in range(num_epochs):
-            if self.n_updates < 200:
-                ROLLOUT_STEPS = int(START_ROLLOUT_STEPS/10)
-            else:
-                ROLLOUT_STEPS = START_ROLLOUT_STEPS
+            #if self.n_updates < 200:
+            #    ROLLOUT_STEPS = int(START_ROLLOUT_STEPS/10)
+            #else:
+            #    ROLLOUT_STEPS = START_ROLLOUT_STEPS
             self.n_steps += (self.env_runner.num_workers * ROLLOUT_STEPS)
             self.n_updates += 1
 
