@@ -3,16 +3,21 @@ from gym import wrappers
 import numpy as np
 from PIL import Image
 import torch
+import cv2
 
 from config import default_config
 from rnd_agent import RNDPPOAgent
 
 
+#def pre_proc(X, h, w):
+#    Img = Image.fromarray(X)
+#    Img = Img.resize((H, W), Image.LINEAR).convert('L')
+#    X = np.array(Img).astype('float32')
+#    return X / 255
 def pre_proc(X, h, w):
-    Img = Image.fromarray(X)
-    Img = Img.resize((H, W), Image.LINEAR).convert('L')
-    X = np.array(Img).astype('float32')
-    return X / 255
+    X = np.array(Image.fromarray(X).convert('L')).astype('float32')
+    x = cv2.resize(X, (h, w))
+    return x / 255
 
 
 ENV_NAME = default_config["EnvName"]
@@ -24,6 +29,7 @@ action_dim = env.action_space.n
 device = 'cuda'
 agent = RNDPPOAgent(action_dim, device=device)
 agent.load_state_dict(torch.load(SAVE_PATH)["Agent"])
+agent.actor_critic_model.module.eval()
 
 env = wrappers.Monitor(env, "./" + ENV_NAME + '_example_run', force=True)
 env.reset()
