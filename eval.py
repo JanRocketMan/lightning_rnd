@@ -29,7 +29,9 @@ env = MontezumaInfoWrapper(MaxAndSkipEnv(gym.make(ENV_NAME), is_render=False), r
 action_dim = env.action_space.n
 device = 'cuda'
 agent = RNDPPOAgent(action_dim, device=device)
-agent.load_state_dict(torch.load(SAVE_PATH)["Agent"])
+torch_load = torch.load(SAVE_PATH)
+agent.load_state_dict(torch_load["Agent"])
+print("N_updates", torch_load["N_Updates"])
 agent.actor_critic_model.module.eval()
 
 env = wrappers.Monitor(env, "./" + ENV_NAME + '_example_run', force=True)
