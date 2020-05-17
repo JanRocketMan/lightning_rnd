@@ -10,11 +10,6 @@ from rnd_agent import RNDPPOAgent
 from environments import MaxAndSkipEnv, MontezumaInfoWrapper
 
 
-#def pre_proc(X, h, w):
-#    Img = Image.fromarray(X)
-#    Img = Img.resize((H, W), Image.LINEAR).convert('L')
-#    X = np.array(Img).astype('float32')
-#    return X / 255
 def pre_proc(X, h, w):
     X = np.array(Image.fromarray(X).convert('L')).astype('float32')
     x = cv2.resize(X, (h, w))
@@ -42,8 +37,6 @@ total_reward = 0
 for i in range(4500):
     with torch.no_grad():
         new_action, _, _, _ = agent.get_action(obs.reshape((1, 4, H, W)))
-    #if np.random.rand() <= 0.25 and i > 0:
-    #    new_action = action
     action = new_action
     new_obs, reward, done, info = env.step(action)
     total_reward += reward
