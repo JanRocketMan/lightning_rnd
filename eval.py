@@ -7,6 +7,7 @@ import cv2
 
 from config import default_config
 from rnd_agent import RNDPPOAgent
+from environments import MaxAndSkipEnv, MontezumaInfoWrapper
 
 
 #def pre_proc(X, h, w):
@@ -24,7 +25,7 @@ ENV_NAME = default_config["EnvName"]
 SAVE_PATH = default_config["SavePath"]
 H, W = default_config["ImageHeight"], default_config["ImageWidth"]
 
-env = gym.make(ENV_NAME)
+env = MontezumaInfoWrapper(MaxAndSkipEnv(gym.make(ENV_NAME), is_render=False), room_address=3)
 action_dim = env.action_space.n
 device = 'cuda'
 agent = RNDPPOAgent(action_dim, device=device)
