@@ -12,7 +12,7 @@ def pre_proc(X, h, w):
     Img = Image.fromarray(X)
     Img = Img.resize((H, W), Image.LINEAR).convert('L')
     X = np.array(Img).astype('float32')
-    return X
+    return X / 255
 
 
 ENV_NAME = default_config["EnvName"]
@@ -29,14 +29,20 @@ env = wrappers.Monitor(env, "./" + ENV_NAME + '_example_run', force=True)
 env.reset()
 obs = np.zeros((4, H, W), dtype='float32')
 
+total_reward = 0
 for i in range(4500):
     with torch.no_grad():
         new_action, _, _, _ = agent.get_action(obs.reshape((1, 4, H, W)))
-    if np.random.rand() <= 0.25 and i > 0:
-        new_action = action
+    #if np.random.rand() <= 0.25 and i > 0:
+    #    new_action = action
     action = new_action
     new_obs, reward, done, info = env.step(action)
+    total_reward += reward
     obs[:3, :, :] = obs[1:, :, :]
     obs[3, :, :] = pre_proc(new_obs, H, W)
-    if done: break
+    if done:
+        print("Finished, total reward is %d" % total_reward)
+        break
+if not done:
+    print("Interrupted after 4500 steps, total reward is %d" % total_reward)
 env.close()
