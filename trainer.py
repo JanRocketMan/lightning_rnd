@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+from copy import deepcopy
 from torch.optim import Adam
 from tensorboardX import SummaryWriter
 
@@ -7,6 +8,11 @@ from config import default_config
 from env_runner import ParallelEnvironmentRunner
 from rnd_agent import RNDPPOAgent
 from utils import RewardForwardFilter, RunningMeanStd, make_train_data
+
+from torch import multiprocessing as mp
+from torch.multiprocessing import Process, Pipe
+
+
 import time
 
 INT_REWARD_DISCOUNT = default_config["IntrinsicRewardDiscount"]
@@ -20,6 +26,83 @@ CLIP_GRAD_NORM = default_config["ClipGradNorm"]
 BATCH_SIZE = default_config["BatchSize"]
 EPOCH_STEPS = default_config["EpochSteps"]
 SAVE_PATH = default_config["SavePath"]
+IMAGE_HEIGHT = default_config["ImageHeight"]
+IMAGE_WIDTH = default_config["ImageWidth"]
+
+def accumulate_rollout_data_pickled(
+    ROLLOUT_STEPS: int, 
+    env_runner: ParallelEnvironmentRunner,
+    agent,
+    current_states,
+    ):
+    stored_data = {
+        key: [] for key in [
+            'states', 'next_states', 'rewards', 'dones', 'real_dones',
+            'actions', 'ext_value', 'int_value', 'policy',
+            'intrinsic_reward'
+        ]
+    }
+    for step in range(ROLLOUT_STEPS + 1):
+        # Play next step
+        result = env_runner.run_agent(
+            agent, current_states, compute_int_reward=True
+        )
+        # Append new data to existing and update states
+        for key in ['ext_value', 'int_value']:
+            stored_data[key].append(result[key])
+        if step < ROLLOUT_STEPS:
+        #    self.log_reward += result["rewards"][self.logged_worker_id]
+        #    self.log_steps += 1
+            for key in result.keys() - ['ext_value', 'int_value', 'states']:
+                stored_data[key].append(result[key])
+            stored_data['states'].append(current_states)
+            current_states = result['next_states']
+
+        # Log stats
+        #if result['real_dones'][self.logged_worker_id]:
+        #    self.log_episode += 1
+        #    self.logger.add_scalar(
+        #        'data/reward_per_episode', self.log_reward, self.log_episode
+        #    )
+        #    self.logger.add_scalar(
+        #        'data/reward_per_updates', self.log_reward, self.n_updates
+        #    )
+        #    self.logger.add_scalar(
+        #        'data/num_steps', self.log_steps, self.log_episode
+        #    )
+        #    self.log_reward, self.log_steps = 0.0, 0
+
+    # Transpose data s.t. first dim corresponds to num_workers
+    for key in stored_data.keys():
+        stored_data[key] = np.swapaxes(np.stack(
+            stored_data[key]), 0, 1
+        )
+    # Normalize states
+    stored_data["states"] /= 255.0
+    return stored_data
+
+
+class RolloutRunner(Process):
+    def __init__(
+            self,
+            child_conn
+        ):
+        self.child_conn = child_conn
+        super(RolloutRunner, self).__init__()
+    
+    def run(self):
+        super(RolloutRunner, self).run()
+        while True:
+            (ROLLOUT_STEPS, env_runner, agent, current_states) = self.child_conn.recv()
+            stored_data = accumulate_rollout_data_pickled(ROLLOUT_STEPS, env_runner, agent, current_states)
+            self.child_conn.send(stored_data)
+
+
+def preprocess_obs(some_states, observation_stats):
+        return np.clip(
+            (some_states[:, 3, :, :].reshape(-1, 1, IMAGE_HEIGHT, IMAGE_WIDTH) - observation_stats.mean) /\
+                observation_stats.std, -5, 5
+        )
 
 
 class RNDTrainer:
@@ -49,6 +132,18 @@ class RNDTrainer:
         self.log_reward = 0.0
         self.log_steps = 0
         self.log_episode = 0
+        parent_conn, child_conn = Pipe()
+
+        self.rollout_parent = parent_conn
+        self.rollout_child = child_conn
+        self.rollout_runner = RolloutRunner(child_conn=child_conn)
+        self.rollout_runner.start()
+
+        self.freze_agent = RNDPPOAgent(self.env_runner.action_dim, device='cuda')
+        self.freze_agent.actor_critic_model.eval()
+        self.freze_agent.rnd_model.eval()
+        self.freze_agent.actor_critic_model.load_state_dict(self.agent.actor_critic_model.state_dict())
+        self.freze_agent.rnd_model.load_state_dict(self.agent.rnd_model.state_dict())
 
     def reset_rollout_data(self):
         self.stored_data = {
@@ -58,6 +153,7 @@ class RNDTrainer:
                 'intrinsic_reward'
             ]
         }
+
 
     def accumulate_rollout_data(self):
         self.reset_rollout_data()
@@ -113,6 +209,10 @@ class RNDTrainer:
             self.load_state_dict(state_dict)
         start_time = time.time()
         global ROLLOUT_STEPS
+
+        ctx = mp.get_context("fork")
+        
+        self.rollout_parent.send(ROLLOUT_STEPS, self.env_runner, self.freze_agent, self.current_states) # SEND START
         #print("START TRAINING")
         #START_ROLLOUT_STEPS = ROLLOUT_STEPS
         for k in range(num_epochs):
@@ -122,10 +222,15 @@ class RNDTrainer:
             #    ROLLOUT_STEPS = START_ROLLOUT_STEPS
             self.n_steps += (self.env_runner.num_workers * ROLLOUT_STEPS)
             self.n_updates += 1
-
             with torch.no_grad():
                 #print("ROLLOUT...", time.time() - start_time)
-                self.accumulate_rollout_data()
+                #self.accumulate_rollout_data()
+                observation_stats = deepcopy(self.env_runner.observation_stats)
+
+                stored_data = self.rollout_parent.recv()
+                self.stored_data = stored_data
+                self.rollout_parent.send(ROLLOUT_STEPS, self.env_runner, self.freze_agent, self.current_states)
+
                 #print("NORMALIZE...", time.time() - start_time)
                 self.normalize_rewards()
 
@@ -162,8 +267,9 @@ class RNDTrainer:
                 #print("PACK TO LOADER...", time.time() - start_time)
                 c_loader = self.pack_to_dataloader(
                     ext_target, int_target, total_adv, 
-                    self.env_runner.preprocess_obs(
-                        self.stored_data["next_states"].reshape(-1, 4, 84, 84)
+                    preprocess_obs(
+                        self.stored_data["next_states"].reshape(-1, 4, 84, 84),
+                    observation_stats
                     )
                 )
             #print("MAKE STEP...", time.time() - start_time)
@@ -237,3 +343,6 @@ class RNDTrainer:
         self.n_steps = state_dict["N_Steps"]
         self.n_updates = state_dict["N_Updates"]
         self.log_episode = state_dict["Log_Episodes"]
+
+    def __del__(self):
+        self.rollout_runner.join(timeout=1)
