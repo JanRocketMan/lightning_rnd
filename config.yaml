@@ -7,7 +7,7 @@ StickyActionProb: 0.25
 
 NumWorkers: 256
 IntrinsicRewardDiscount: 0.99
-NumInitSteps: 6400
+NumInitSteps: 128
 
 RolloutSteps: 128
 ExtRewardDiscount: 0.999
