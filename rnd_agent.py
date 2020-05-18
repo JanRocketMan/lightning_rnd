@@ -90,6 +90,7 @@ class RNDPPOAgent:
     def to(self, device):
         self.rnd_model.to(device)
         self.actor_critic_model.to(device)
+        self.device = device
         return self
 
     def load_state_dict(self, state_dict):

@@ -10,7 +10,11 @@ from rnd_agent import RNDPPOAgent
 from utils import RewardForwardFilter, RunningMeanStd, make_train_data
 
 from torch import multiprocessing as mp
-from torch.multiprocessing import Process, Pipe
+from torch.multiprocessing import Process, Pipe, set_start_method
+try:
+     set_start_method('spawn')
+except RuntimeError:
+    pass
 
 
 import time
@@ -75,29 +79,30 @@ class ActorRolloutRunner(Process):
 
     def accumulate_rollout_data(self):
         self.reset_rollout_data()
-        for step in range(ROLLOUT_STEPS + 1):
-            # Play next step
-            result = self.env_runner.run_agent(
-                self.actor_agent, self.current_states, compute_int_reward=True
-            )
-            # Append new data to existing and update states
-            for key in ['ext_value', 'int_value']:
-                self.stored_data[key].append(result[key])
-            if step < ROLLOUT_STEPS:
-                self.log_reward += result["rewards"][self.logged_worker_id]
-                self.log_steps += 1
-                for key in result.keys() - ['ext_value', 'int_value', 'states']:
-                    self.stored_data[key].append(result[key])
-                self.stored_data['states'].append(self.current_states)
-                self.current_states = result['next_states']
-
-            # Log stats
-            if result['real_dones'][self.logged_worker_id]:
-                self.log_episode += 1
-                self.logger_hist.append(
-                    [self.log_reward, self.log_episode, self.log_steps]
+        with torch.no_grad():
+            for step in range(ROLLOUT_STEPS + 1):
+                # Play next step
+                result = self.env_runner.run_agent(
+                    self.actor_agent, self.current_states, compute_int_reward=True
                 )
-                self.log_reward, self.log_steps = 0.0, 0
+                # Append new data to existing and update states
+                for key in ['ext_value', 'int_value']:
+                    self.stored_data[key].append(result[key])
+                if step < ROLLOUT_STEPS:
+                    self.log_reward += result["rewards"][self.logged_worker_id]
+                    self.log_steps += 1
+                    for key in result.keys() - ['ext_value', 'int_value', 'states']:
+                        self.stored_data[key].append(result[key])
+                    self.stored_data['states'].append(self.current_states)
+                    self.current_states = result['next_states']
+
+                # Log stats
+                if result['real_dones'][self.logged_worker_id]:
+                    self.log_episode += 1
+                    self.logger_hist.append(
+                        [self.log_reward, self.log_episode, self.log_steps]
+                    )
+                    self.log_reward, self.log_steps = 0.0, 0
 
         # Transpose data s.t. first dim corresponds to num_workers
         for key in self.stored_data.keys():
@@ -114,9 +119,9 @@ class ActorRolloutRunner(Process):
             current_agent = self.child_conn.recv()
             self.actor_agent = deepcopy(current_agent).to(self.device)
             self.accumulate_rollout_data()
+            del current_agent
             self.child_conn.send(
-                self.stored_data, self.env_runner.observation_stats,
-                self.logger_hist
+                (self.stored_data, self.env_runner.observation_stats, self.logger_hist)
             )
 
 
@@ -144,6 +149,7 @@ class RNDTrainer:
 
         self.n_steps = 0
         self.n_updates = 0
+        self.log_episode, self.log_episode_offset = 0, 0
 
         parent_conn, child_conn = Pipe()
 
@@ -164,8 +170,10 @@ class RNDTrainer:
             self.n_steps += (self.env_runner.num_workers * ROLLOUT_STEPS)
             self.n_updates += 1
             with torch.no_grad():
-                stored_data, obs_stats, logger_hist = self.rollout_parent.recv()
-                self.stored_data = stored_data
+                result = self.rollout_parent.recv()
+                self.stored_data = deepcopy(result[0])
+                obs_stats, logger_hist = deepcopy(result[1]), deepcopy(result[2])
+                del result
                 self.rollout_parent.send(self.agent)
 
                 self.log_rollout_step_results(logger_hist)
@@ -257,11 +265,13 @@ class RNDTrainer:
             self.env_runner.observation_stats.var = state_dict["EnvObs_Stats"]
         self.n_steps = state_dict["N_Steps"]
         self.n_updates = state_dict["N_Updates"]
-        self.log_episode = state_dict["Log_Episodes"]
+        self.log_episode_offset = state_dict["Log_Episodes"]
 
     def log_rollout_step_results(self, logger_hist):
         for group in logger_hist:
             log_reward, log_episode, log_steps = group
+            log_episode += self.log_episode_offset # Add offset
+
             self.logger.add_scalar(
                 'data/reward_per_episode', log_reward, log_episode
             )
@@ -271,6 +281,10 @@ class RNDTrainer:
             self.logger.add_scalar(
                 'data/num_steps', log_steps, log_episode
             )
+        latest_log_episode = logger_hist[-1][1]
+        latest_log_episode += self.log_episode_offset
+
+        self.log_episode = latest_log_episode
 
         self.logger.add_scalar(
             'data/intrinsic_reward_per_episode', np.sum(
