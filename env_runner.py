@@ -116,7 +116,7 @@ class ParallelEnvironmentRunner:
                 self.stored_data['next_states']
             )
         self.reset_stored_data()
-    
+
     def join_all_workers(self):
         for work in self.all_works:
             work.join(timeout=1)

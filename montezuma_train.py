@@ -28,11 +28,11 @@ def train_montezuma():
     print("Initializing Environment Runner...")
     env_runner = ParallelEnvironmentRunner(NUM_WORKERS, action_dim)
     print("Done, initializing RNDTrainer...")
-    agent = RNDPPOAgent(action_dim, device=device)
+    agent = RNDPPOAgent(action_dim, device='cuda:0')
     writer = SummaryWriter()
 
     trainer = RNDTrainer(
-        env_runner, agent, writer, device
+        env_runner, agent, writer, opt_device='cuda:0', run_device='cuda:1'
     )
     print("Done, training")
     if STATE_DICT is not None:

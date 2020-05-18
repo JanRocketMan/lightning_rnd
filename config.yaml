@@ -18,7 +18,7 @@ LearningRate: 0.0001
 ClipGradNorm: 10.0
 BatchSize: 8192
 EpochSteps: 4
-SavePath: "/home/chervontsev/checkpoints/RndAgent.ckpt"
+SavePath: "/home/chervontsev/checkpoints/RndAgentFast.ckpt"
 
 NumEpochs: 2000
 

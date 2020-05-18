@@ -13,12 +13,8 @@ class RNDPPOAgent:
     def __init__(self, action_dim, device):
         self.device = device
 
-        self.actor_critic_model = torch.nn.DataParallel(
-            CNNPolicyNet(action_dim).to(self.device)
-        )
-        self.rnd_model = torch.nn.DataParallel(
-            RNDNet().to(self.device)
-        )
+        self.actor_critic_model = CNNPolicyNet(action_dim).to(self.device)
+        self.rnd_model = RNDNet().to(self.device)
 
         self.mse_crit = torch.nn.MSELoss(reduction='none')
 
@@ -90,6 +86,11 @@ class RNDPPOAgent:
             "RNDModel": self.rnd_model.state_dict(),
             "ActorCritic": self.actor_critic_model.state_dict()
         }
+
+    def to(self, device):
+        self.rnd_model.to(device)
+        self.actor_critic_model.to(device)
+        return self
 
     def load_state_dict(self, state_dict):
         self.rnd_model.load_state_dict(state_dict["RNDModel"])
