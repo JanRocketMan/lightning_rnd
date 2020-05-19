@@ -1,4 +1,5 @@
 import traceback
+import numpy as np
 
 from torch.multiprocessing import Pipe
 import torch
@@ -88,10 +89,13 @@ class ParallelEnvironmentRunner:
         self.stored_data = get_default_stored_data(self.num_workers, self.rollout_steps, self.action_dim)
 
     def push_to_stored_data(self, key, data, step_idx, worker_idx=None):
+        if isinstance(data, np.ndarray):
+            data = torch.from_numpy(data)
+
         if worker_idx is not None:
-            self.stored_data[key][worker_idx, step_idx] = torch.from_numpy(data)
+            self.stored_data[key][worker_idx, step_idx] = data
         else:
-            self.stored_data[key][:, step_idx] = torch.from_numpy(data)
+            self.stored_data[key][:, step_idx] = data
 
     def collect_env_results(self, actions, step_idx):
         """Synchronizes environments after each step"""
@@ -136,7 +140,7 @@ class ParallelEnvironmentRunner:
         # Update observation stats
         if update_stats:
             self.observation_stats.update(
-                self.stored_data['next_states'][:, step_idx, 3, :, :].reshape(-1, 1, IMAGE_HEIGHT, IMAGE_WIDTH)
+                self.stored_data['next_states'][:, step_idx, 3, :, :].reshape(-1, 1, IMAGE_HEIGHT, IMAGE_WIDTH).float()
             )
             self.stored_data['obs_stats'][0] = self.observation_stats.mean.reshape(IMAGE_HEIGHT, IMAGE_WIDTH)
             self.stored_data['obs_stats'][1] = self.observation_stats.std.reshape(IMAGE_HEIGHT, IMAGE_WIDTH)
@@ -169,8 +173,8 @@ class ParallelEnvironmentRunner:
                     _, ext_value, int_value, _ = self.actor_agent.get_action(
                         self.current_state.numpy().astype('float') / 255
                     )
-                    self.stored_data['ext_values'][:, self.rollout_steps] = ext_value
-                    self.stored_data['int_values'][:, self.rollout_steps] = int_value
+                    self.push_to_stored_data('ext_values', ext_value, self.rollout_steps)
+                    self.push_to_stored_data('int_values', int_value, self.rollout_steps)
 
                 for key in self.stored_data.keys():
                     self.buffer[key] = self.stored_data[key]
@@ -236,7 +240,7 @@ class ParallelEnvironmentRunner:
 
     def preprocess_obs(self, some_states):
         return torch.clamp(
-            (some_states[:, 3, :, :].reshape(-1, 1, IMAGE_HEIGHT, IMAGE_WIDTH) - self.observation_stats.mean) /\
+            (some_states[:, 3, :, :].reshape(-1, 1, IMAGE_HEIGHT, IMAGE_WIDTH).float() - self.observation_stats.mean) /\
                 self.observation_stats.std, -5, 5
         )
 

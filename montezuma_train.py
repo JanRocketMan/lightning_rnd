@@ -68,7 +68,7 @@ def train_montezuma():
         buffer, shared_state_dict, EPOCHS,
         child_conn, writer,
     )
-    if "N_Episodes" in state_dict.keys():
+    if state_dict and "N_Episodes" in state_dict.keys():
         env_runner.log_episode = state_dict["N_Episodes"]
 
     print("Done, initializing RNDTrainer...")
@@ -79,7 +79,7 @@ def train_montezuma():
         state_dict=state_dict
     )
 
-    #print("Done, training")
+    print("Done, training")
 
     trainer.start()
     env_runner.run_agent()

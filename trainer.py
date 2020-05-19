@@ -42,7 +42,7 @@ class RNDTrainer(Process):
         buffer, shared_state_dict, num_epochs, state_dict=None
     ):
         super(RNDTrainer, self).__init__()
-        self.daemon = True
+        self.daemon = False
 
         self.num_workers = num_workers
         self.loader_num_workers = loader_num_workers
@@ -68,14 +68,16 @@ class RNDTrainer(Process):
         self.num_epochs = num_epochs
 
     def get_intrinsic_rewards(self):
-        curr_data = self.stored_data["next_steps"].reshape(-1, 4, IMAGE_HEIGHT, IMAGE_WIDTH)
+        curr_data = self.stored_data["next_states"].reshape(-1, 4, IMAGE_HEIGHT, IMAGE_WIDTH)
         next_rewards = self.agent.get_intrinsic_reward(
             preprocess_obs(curr_data, self.stored_data["obs_stats"])
         )
-        self.stored_data["intrinsic_rewards"] = next_rewards.reshape(self.stored_data["rewards"].shape)
+        self.stored_data["intrinsic_rewards"] = torch.from_numpy(
+            next_rewards.reshape(self.stored_data["rewards"].shape)
+        )
 
     def normalize_rewards(self):
-        rewards_per_worker = torch.FloatTensor([
+        rewards_per_worker = torch.cat([
             self.disc_reward.update(reward_per_step) for
             reward_per_step in self.stored_data["intrinsic_rewards"].T
         ]).reshape(-1)
@@ -105,14 +107,14 @@ class RNDTrainer(Process):
                     self.get_intrinsic_rewards()
                     self.normalize_rewards()
                     ext_target, ext_adv = make_train_data(
-                        self.stored_data["rewards"], self.stored_data["dones"],
+                        self.stored_data["rewards"], self.stored_data["dones"].float(),
                         self.stored_data["ext_values"], EXT_DISCOUNT,
                         ROLLOUT_STEPS, self.num_workers
                     )
                     int_target, int_adv = make_train_data(
                         self.stored_data["intrinsic_rewards"], torch.zeros_like(
                             self.stored_data["intrinsic_rewards"]
-                        ),
+                        ).float(),
                         self.stored_data["int_values"], INT_DISCOUNT,
                         ROLLOUT_STEPS, self.num_workers
                     )
