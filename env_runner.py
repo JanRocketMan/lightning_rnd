@@ -49,6 +49,9 @@ class ParallelEnvironmentRunner(Process):
         buffer, shared_state_dict, num_epochs,
         conn_to_learner, writer, render_envs=False,
     ):
+        super(ParallelEnvironmentRunner, self).__init__()
+        self.daemon = True
+
         self.num_workers = num_workers
         self.render_envs = render_envs
         self.action_dim = action_dim
@@ -67,12 +70,13 @@ class ParallelEnvironmentRunner(Process):
         self.init_state = init_state
         self.reset_current_state()
 
-        self.__init_workers()
-        self.__init_obs_stats()
-
         self.log_env = 0
         self.log_episode, self.log_steps = 0, 0
         self.log_reward, self.log_total_steps = 0.0, 0
+        self.no_grad_ctx = torch.no_grad()
+
+        self.__init_workers()
+        self.__init_obs_stats()
 
         self.buffer = buffer
         self.shared_state_dict = shared_state_dict
@@ -113,7 +117,7 @@ class ParallelEnvironmentRunner(Process):
 
     def run_agent_step(self, step_idx, action_fn, compute_int_reward=False, compute_agent_outputs=True, update_stats=True):
         # Predict next actions via current agent
-        with torch.no_grad():
+        with self.no_grad_ctx:
             action, ext_value, int_value, policy = action_fn(
                 self.current_state.astype('float') / 255
             )
@@ -122,7 +126,7 @@ class ParallelEnvironmentRunner(Process):
         self.collect_env_results(action, step_idx)
         # Collect now model-based data
         if compute_agent_outputs:
-            with torch.no_grad():
+            with self.no_grad_ctx:
                 log_prob_policy = self.actor_agent.get_policy_log_prob(
                     action, policy
                 )
@@ -150,8 +154,7 @@ class ParallelEnvironmentRunner(Process):
                 self.log_total_steps += 1
                 self.reset_stored_data()
 
-                with Lock():
-                    self.actor_agent.load_state_dict(self.shared_state_dict["agent_state"])
+                self.actor_agent.load_state_dict(self.shared_state_dict["agent_state"])
 
                 for idx in range(self.rollout_steps):
                     self.run_agent_step(
@@ -161,16 +164,15 @@ class ParallelEnvironmentRunner(Process):
 
                     self.log_current_results(idx)
 
-                with torch.no_grad():
+                with self.no_grad_ctx:
                     _, ext_value, int_value, _ = self.actor_agent.get_action(
                         self.current_state.astype('float') / 255
                     )
                     self.stored_data['ext_values'][:, self.rollout_steps] = ext_value
                     self.stored_data['int_values'][:, self.rollout_steps] = int_value
 
-                with Lock():
-                    for key in self.stored_data.keys():
-                        self.buffer[key] = deepcopy(torch.from_numpy(self.stored_data[key]))
+                for key in self.stored_data.keys():
+                    self.buffer[key] = deepcopy(torch.from_numpy(self.stored_data[key]))
 
                 self.conn_to_learner.send(
                     True

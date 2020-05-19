@@ -78,8 +78,7 @@ def train_montezuma():
     #print("Done, training")
 
     env_runner.start()
-    trainer.run()
-    #trainer.start()
+    trainer.start()
 
     env_runner.join()
     trainer.join()
