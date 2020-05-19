@@ -46,7 +46,7 @@ def preprocess_obs(some_states, observation_stats):
 
 class RNDTrainer(Process):
     def __init__(self, num_workers, loader_num_workers, conn_to_actor, agent: RNDPPOAgent,
-        logger: SummaryWriter
+        logger: SummaryWriter, buffer, shared_state_dict, num_epochs, state_dict=None
     ):
         self.num_workers = num_workers
         self.loader_num_workers = loader_num_workers
@@ -61,10 +61,15 @@ class RNDTrainer(Process):
         self.n_updates = 0
         self.n_steps = 0
 
+        if state_dict is not None:
+            self.load_state_dict(state_dict)
+
         self.reward_stats = RunningMeanStd()
         self.disc_reward = RewardForwardFilter(INT_REWARD_DISCOUNT)
 
-        self.conn_to_actor.start()
+        self.buffer = buffer
+        self.shared_state_dict = shared_state_dict
+        self.num_epochs = num_epochs
 
     def get_intrinsic_rewards(self):
         curr_data = self.stored_data["next_steps"].reshape(-1, 4, IMAGE_HEIGHT, IMAGE_WIDTH)
@@ -82,24 +87,28 @@ class RNDTrainer(Process):
         self.stored_data["intrinsic_rewards"] /= (self.reward_stats.std + 1e-6)
         self.stored_data["rewards"] = np.clip(self.stored_data["rewards"], -1, 1)
 
-    def train(self, buffer, agent_state, num_epochs, state_dict=None):
-        if state_dict is not None:
-            self.load_state_dict(state_dict)
-        self.conn_to_actor.send(True)
+    def run(self):
+        try:
+            super(RNDTrainer, self).run()
+            with Lock():
+                self.shared_state_dict['agent_state'] = deepcopy(self.agent.state_dict())
+            self.conn_to_actor.send(True)
 
-            for k in range(num_epochs):
+            for k in range(self.num_epochs):
                 finished = self.conn_to_actor.recv()
+
+                with Lock():
+                    self.stored_data = deepcopy(self.buffer.numpy())
+                    self.shared_state_dict['agent_state'] = deepcopy(self.agent.state_dict())
+
+                self.conn_to_actor.send(True)
 
                 self.n_updates += 1
                 self.n_steps += (self.num_workers * ROLLOUT_STEPS)
 
-                with Lock():
-                    self.stored_data = deepcopy(buffer)
-
                 with torch.no_grad():
                     self.get_intrinsic_rewards()
                     self.normalize_rewards()
-
                     ext_target, ext_adv = make_train_data(
                         self.stored_data["rewards"], self.stored_data["dones"],
                         self.stored_data["ext_values"], EXT_DISCOUNT,
@@ -112,26 +121,18 @@ class RNDTrainer(Process):
                         self.stored_data["int_values"], INT_DISCOUNT,
                         ROLLOUT_STEPS, self.num_workers
                     )
-
                 total_adv = INT_COEFF * int_adv + EXT_COEFF * ext_adv
                 c_loader = self.pack_to_dataloader(
                     ext_target, int_target, total_adv, 
                     preprocess_obs(
-                        self.stored_data["next_states"].reshape(-1, 4, 84, 84),
+                        self.stored_data["next_states"].reshape(-1, 4, 84, 84).astype('float'),
                         self.stored_data["obs_stats"]
                     )
                 )
-
                 self.train_step(c_loader)
-
-                with Lock():
-                    agent_state = deepcopy(self.agent.state_dict())
-
-                self.conn_to_actor.send(True)
 
                 if self.n_updates % 100 == 0:
                     torch.save(self.state_dict(), SAVE_PATH)
-
         except KeyboardInterrupt:
             pass  # Return silently.
         except Exception as e:
@@ -143,7 +144,7 @@ class RNDTrainer(Process):
     def pack_to_dataloader(self, ext_target, int_target, total_adv, next_states):
         from torch.utils import data
 
-        states_tensor = torch.FloatTensor(self.stored_data["states"].reshape(-1, 4, 84, 84))
+        states_tensor = torch.FloatTensor(self.stored_data["states"].reshape(-1, 4, 84, 84).astype('float') / 255)
         actions_tensor = torch.LongTensor(self.stored_data["actions"].reshape(-1))
         ext_target, int_target, total_adv = [
             torch.FloatTensor(val) for val in [
@@ -188,6 +189,3 @@ class RNDTrainer(Process):
         self.agent_optimizer.load_state_dict(state_dict["Optimizer"])
         self.n_steps = state_dict["N_Steps"]
         self.n_updates = state_dict["N_Updates"]
-
-    def __del__(self):
-        self.conn_to_actor.join(timeout=1)
