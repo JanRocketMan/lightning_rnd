@@ -241,9 +241,9 @@ class ParallelEnvironmentRunner:
         ), 0.0, 0.0, 0.0)
 
         self.reset_stored_data()
-        for idx in range(INIT_STEPS):
+        for _ in range(INIT_STEPS):
             self.run_agent_step(
-                idx,
+                0,
                 rand_act,
                 compute_agent_outputs=False
             )
