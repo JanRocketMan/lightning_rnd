@@ -106,10 +106,10 @@ class ParallelEnvironmentRunner:
             self.push_to_stored_data('dones', done, step_idx, j)
             self.push_to_stored_data('real_dones', real_done, step_idx, j)
 
-    def collect_agent_results(self, step_idx, action, ext_value, int_value, policy, log_prob_policy):
+    def collect_agent_results(self, step_idx, action, state, ext_value, int_value, policy, log_prob_policy):
         # Collect now model-based data
         self.push_to_stored_data('actions', action, step_idx)
-        self.push_to_stored_data('states', self.current_state, step_idx)
+        self.push_to_stored_data('states', state, step_idx)
         self.push_to_stored_data('ext_values', ext_value, step_idx)
         self.push_to_stored_data('int_values', int_value, step_idx)
         self.push_to_stored_data('policies', policy, step_idx)
@@ -118,8 +118,9 @@ class ParallelEnvironmentRunner:
     def run_agent_step(self, step_idx, action_fn, compute_int_reward=False, compute_agent_outputs=True, update_stats=True):
         # Predict next actions via current agent
         with torch.no_grad():
+            state = self.current_state.numpy()
             action, ext_value, int_value, policy = action_fn(
-                self.current_state.astype('float') / 255
+                state.astype('float') / 255
             )
 
         # Run and collect results across environments
@@ -130,7 +131,7 @@ class ParallelEnvironmentRunner:
                 log_prob_policy = self.actor_agent.get_policy_log_prob(
                     action, policy
                 )
-            self.collect_agent_results(step_idx, action, ext_value, int_value, policy, log_prob_policy)
+            self.collect_agent_results(step_idx, action, state, ext_value, int_value, policy, log_prob_policy)
 
         # Update observation stats
         if update_stats:
@@ -160,13 +161,13 @@ class ParallelEnvironmentRunner:
                     self.run_agent_step(
                         idx, self.actor_agent.get_action
                     )
-                    self.current_state = self.stored_data["next_states"][:, idx].numpy()
+                    self.current_state = self.stored_data["next_states"][:, idx]
 
                     self.log_current_results(idx)
 
                 with torch.no_grad():
                     _, ext_value, int_value, _ = self.actor_agent.get_action(
-                        self.current_state.astype('float') / 255
+                        self.current_state.numpy().astype('float') / 255
                     )
                     self.stored_data['ext_values'][:, self.rollout_steps] = ext_value
                     self.stored_data['int_values'][:, self.rollout_steps] = int_value
@@ -229,7 +230,7 @@ class ParallelEnvironmentRunner:
                 rand_act,
                 compute_agent_outputs=False
             )
-            self.current_state = self.stored_data["next_states"][:, idx].numpy()
+            self.current_state = self.stored_data["next_states"][:, idx]
         self.reset_stored_data()
         self.reset_current_state()
 
