@@ -45,8 +45,8 @@ def get_default_stored_data(W, T, action_dim):
 class ParallelEnvironmentRunner:
     def __init__(
         self, num_workers: int, action_dim: int, rollout_steps: int,
-        init_agent: RNDPPOAgent, init_state: torch.ByteTensor,
-        buffer, shared_state_dict, num_epochs,
+        shared_agent: RNDPPOAgent, init_state: torch.ByteTensor,
+        buffer, num_epochs,
         conn_to_learner, writer, render_envs=False,
     ):
         self.num_workers = num_workers
@@ -55,11 +55,11 @@ class ParallelEnvironmentRunner:
         self.rollout_steps = rollout_steps
         self.writer = writer
         self.conn_to_learner = conn_to_learner
-        self.actor_agent = init_agent
+        self.actor_agent = shared_agent
         self.all_works = []
         self.parent_conns = []
         self.child_conns = []
-
+ 
         # Normalization statistics
         self.observation_stats = RunningMeanStd(
             shape=(1, 1, IMAGE_HEIGHT, IMAGE_WIDTH)
@@ -76,8 +76,10 @@ class ParallelEnvironmentRunner:
         self.__init_obs_stats()
 
         self.buffer = buffer
-        self.shared_state_dict = shared_state_dict
         self.num_epochs = num_epochs
+        with threading.Lock():
+            self.actor_agent.reset_params()
+            print("Init state dict:", self.actor_agent.state_dict()["RNDModel"]['distill_net.9.weight'][:6, 0])
 
     def reset_current_state(self):
         self.current_state = torch.zeros(
@@ -158,25 +160,12 @@ class ParallelEnvironmentRunner:
             for i in range(self.num_epochs):
                 finished = self.conn_to_learner.recv()
 
-                print("A %d: Waited for learner to finish" % i)
+                #print("A %d: Waited for learner to finish" % i)
 
                 self.log_total_steps += 1
                 self.reset_stored_data()
 
-                with lock:
-                    new_rnd_state, new_agent_state = {}, {}
-                    rnd_shared_state = self.shared_state_dict['agent_state']['RNDModel']
-                    agent_shared_state = self.shared_state_dict['agent_state']['ActorCritic']
-
-                    for key in rnd_shared_state.keys():
-                        new_rnd_state[key] = deepcopy(rnd_shared_state[key])
-                    for key in agent_shared_state.keys():
-                        new_agent_state[key] = deepcopy(agent_shared_state[key])
-
-                    new_state_dict = {"RNDModel": new_rnd_state, "ActorCritic": new_agent_state}
-                    self.actor_agent.load_state_dict(new_state_dict)
-
-                print("A %d: Loaded new actor state" % i)
+                #print("A %d: Loaded new actor state" % i)
 
                 for idx in range(self.rollout_steps):
                     self.run_agent_step(
@@ -193,19 +182,20 @@ class ParallelEnvironmentRunner:
                     self.push_to_stored_data('ext_values', ext_value, self.rollout_steps)
                     self.push_to_stored_data('int_values', int_value, self.rollout_steps)
 
-                print("A %d: states" % i, self.stored_data["states"].min(), self.stored_data["states"].max())
-                with lock:
-                    for key in self.buffer.keys():
-                        self.buffer[key] = deepcopy(self.stored_data[key])
-                    print("A %d:" % i, [(it[0], it[1].min(), it[1].max()) for it in self.buffer.items()])
+                #print("A %d: states" % i, self.stored_data["states"].min(), self.stored_data["states"].max())
 
-                print("A %d: Updated trajectories" % i)
+                for key in self.stored_data.keys():
+                    self.buffer[key][0][...] = self.stored_data[key]
+                #print("A %d:" % i, [(it[0], it[1][0].min(), it[1][0].max()) for it in self.buffer.items()])
+                #print("A %d: agent state" % i, self.actor_agent.state_dict()["RNDModel"]['distill_net.9.weight'][:6, 0])
+
+                #print("A %d: Updated trajectories" % i)
 
                 self.conn_to_learner.send(
                     self.passed_episodes
                 )
                 self.passed_episodes = 0
-                print("A %d: End of step" % i)
+                #print("A %d: End of step" % i)
 
         except KeyboardInterrupt:
             pass  # Return silently.

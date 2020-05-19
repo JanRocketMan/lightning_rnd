@@ -39,16 +39,16 @@ def preprocess_obs(some_states, observation_stats):
     )
 
 
-def run_rnd_trainer(num_workers, loader_num_workers, conn_to_actor, agent: RNDPPOAgent, buffer, shared_state_dict, num_epochs, state_dict=None):
+def run_rnd_trainer(num_workers, loader_num_workers, conn_to_actor, agent: RNDPPOAgent, buffer, shared_agent: RNDPPOAgent, num_epochs, state_dict=None):
     trainer_cls = RNDTrainer(
-        num_workers, loader_num_workers, conn_to_actor, agent, buffer, shared_state_dict, num_epochs, state_dict
+        num_workers, loader_num_workers, conn_to_actor, agent, buffer, shared_agent, num_epochs, state_dict
     )
     trainer_cls.train()
 
 
 class RNDTrainer:
     def __init__(self, num_workers, loader_num_workers, conn_to_actor, agent: RNDPPOAgent,
-        buffer, shared_state_dict, num_epochs,
+        buffer, shared_agent: RNDPPOAgent, num_epochs,
         state_dict=None
     ):
         self.num_workers = num_workers
@@ -66,7 +66,7 @@ class RNDTrainer:
         self.num_epochs = num_epochs
 
         self.buffer = buffer
-        self.shared_state_dict = shared_state_dict
+        self.shared_agent = shared_agent
         self.num_epochs = num_epochs
 
         if state_dict is not None:
@@ -76,6 +76,12 @@ class RNDTrainer:
         self.disc_reward = RewardForwardFilter(INT_REWARD_DISCOUNT)
 
         self.stored_data = {}
+        self.idx_to_key = {
+            i: val for i, val in enumerate(
+                ['actions', 'dones', 'ext_values', 'int_values', 'log_prob_policies',
+                'next_states', 'obs_stats', 'policies', 'real_dones', 'rewards', 'states']
+            )
+        }
 
     def get_intrinsic_rewards(self):
         curr_data = self.stored_data["next_states"].reshape(-1, 4, IMAGE_HEIGHT, IMAGE_WIDTH)
@@ -97,28 +103,24 @@ class RNDTrainer:
 
     def train(self, lock=threading.Lock()):
         try:
+            self.shared_agent.load_state_dict(self.agent.state_dict())
+
             self.conn_to_actor.send(True)
-            print("L -1: Sent to agent that everything is ok")
+            #print("L -1: Sent to agent that everything is ok")
 
             for k in range(self.num_epochs):
                 passed_episodes = self.conn_to_actor.recv()
-                print("L %d: passed episodes" % k, passed_episodes)
-                print("L %d: Waited for agent to finish" % k)
+                #print("L %d: passed episodes" % k, passed_episodes)
+                #print("L %d: Waited for agent to finish" % k)
 
-                with lock:
-                    print("L %d:" % k, [(it[0], it[1].min(), it[1].max()) for it in self.buffer.items()])
-                    for key in self.buffer.keys():
-                        self.stored_data[key] = deepcopy(self.buffer[key])
-                    rnd_shared_state = self.shared_state_dict['agent_state']['RNDModel']
-                    agent_shared_state = self.shared_state_dict['agent_state']['ActorCritic']
+                #print("L %d:" % k, [(it[0], it[1][0].min(), it[1][0].max()) for it in self.buffer.items()])
+                for key in self.buffer.keys():
+                    self.stored_data[key] = self.buffer[key][0]
+                self.shared_agent.load_state_dict(self.agent.state_dict())
+                #print("L %d: agent state" % k, self.shared_agent.state_dict()["RNDModel"]['distill_net.9.weight'][:6, 0])
 
-                    for key in rnd_shared_state.keys():
-                        rnd_shared_state[key] = deepcopy(self.agent.state_dict()["RNDModel"][key])
-                    for key in agent_shared_state.keys():
-                        agent_shared_state[key] = deepcopy(self.agent.state_dict()["ActorCritic"][key])
-
-                print("L %d: states before train step" % k, self.stored_data["states"].min(), self.stored_data["states"].max())
-                print("L %d: Loaded stored data & send agent state" % k)
+                #print("L %d: states before train step" % k, self.stored_data["states"].min(), self.stored_data["states"].max())
+                #print("L %d: Loaded stored data & send agent state" % k)
 
                 self.conn_to_actor.send(True)
 
@@ -150,8 +152,8 @@ class RNDTrainer:
                         )
                     )
                 self.train_step(c_loader)
-                print("L %d: Made train step" % k)
-                print("L %d: states after tr step" % k, self.stored_data["states"].min(), self.stored_data["states"].max())
+                #print("L %d: Made train step" % k)
+                #print("L %d: states after tr step" % k, self.stored_data["states"].min(), self.stored_data["states"].max())
 
                 if self.n_updates % 100 == 0:
                     torch.save(self.state_dict(), SAVE_PATH)

@@ -42,6 +42,9 @@ class CNNPolicyNet(nn.Module):
             nn.Linear(self.hidden_dim, 2)
         )
 
+        self.init_params()
+
+    def init_params(self):
         ortho_init(self.conv_features, np.sqrt(2))
         ortho_init(self.dense_features, np.sqrt(2))
         ortho_init(self.actor_model, 0.01)
@@ -79,10 +82,13 @@ class RNDNet(nn.Module):
             nn.Linear(self.hidden_dim, self.hidden_dim)
         ) for _ in range(2)]
 
-        ortho_init(self, np.sqrt(2))
-
         for param in self.random_net.parameters():
             param.requires_grad_(False)
+
+        self.init_params()
+
+    def init_params(self):
+        ortho_init(self, np.sqrt(2))
 
     def forward(self, states):
         return [net(states) for net in [self.distill_net, self.random_net]]
@@ -92,6 +98,7 @@ if __name__ == '__main__':
 
     ex_cnn = CNNPolicyNet(10)
     ex_rnd = RNDNet()
+    print(ex_rnd.state_dict()['distill_net.9.weight'][:6, 0])
 
     ex_inp = torch.randn(128, 4, 84, 84)
 

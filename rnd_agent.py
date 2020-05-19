@@ -9,8 +9,9 @@ UPDATE_PROP = default_config["RNDUpdateProportion"]
 ENT_COEFF = default_config["PPOEntropyCoeff"]
 PPO_EPS = default_config["PPORewardEps"]
 
-class RNDPPOAgent:
+class RNDPPOAgent(torch.nn.Module):
     def __init__(self, action_dim, device):
+        super(RNDPPOAgent, self).__init__()
         self.device = device
 
         self.actor_critic_model = CNNPolicyNet(action_dim).to(self.device)
@@ -99,3 +100,7 @@ class RNDPPOAgent:
     def load_state_dict(self, state_dict):
         self.rnd_model.load_state_dict(state_dict["RNDModel"])
         self.actor_critic_model.load_state_dict(state_dict["ActorCritic"])
+
+    def reset_params(self):
+        self.rnd_model.init_params()
+        self.actor_critic_model.init_params()

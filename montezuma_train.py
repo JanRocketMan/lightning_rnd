@@ -1,3 +1,4 @@
+import typing
 import gym
 import torch
 from torch.multiprocessing import Process, Pipe, set_start_method, get_context
@@ -21,6 +22,31 @@ EPOCHS = default_config["NumEpochs"]
 ROLLOUT_STEPS = default_config["RolloutSteps"]
 USETPU = default_config["UseTPU"]
 STATE_DICT = default_config.get("StateDict", None)
+IMAGE_HEIGHT = default_config["ImageHeight"]
+IMAGE_WIDTH = default_config["ImageWidth"]
+
+
+Buffers = typing.Dict[str, typing.List[torch.Tensor]]
+
+
+def create_buffer(W, T, action_dim) -> Buffers:
+    specs = dict(
+        states=dict(size=(W, T, 4, IMAGE_HEIGHT, IMAGE_WIDTH), dtype=torch.uint8),
+        next_states=dict(size=(W, T, 4, IMAGE_HEIGHT, IMAGE_WIDTH), dtype=torch.uint8),
+        actions=dict(size=(W, T), dtype=torch.long),
+        rewards=dict(size=(W, T), dtype=torch.float32),
+        dones=dict(size=(W, T), dtype=torch.bool),
+        real_dones=dict(size=(W, T), dtype=torch.bool),
+        ext_values=dict(size=(W, T + 1), dtype=torch.float32),
+        int_values=dict(size=(W, T + 1), dtype=torch.float32),
+        policies=dict(size=(W, T, action_dim), dtype=torch.float32),
+        log_prob_policies=dict(size=(W, T), dtype=torch.float32),
+        obs_stats=dict(size=(2, IMAGE_HEIGHT, IMAGE_WIDTH), dtype=torch.float32),
+    )
+    buffers: Buffers = {key: [] for key in specs}
+    for key in buffers:
+        buffers[key].append(torch.empty(**specs[key]).share_memory_())
+    return buffers
 
 
 def train_montezuma():
@@ -44,29 +70,32 @@ def train_montezuma():
 
     print("Initializing agent...")
     agent = RNDPPOAgent(action_dim, device=opt_device)
-    frozen_agent = RNDPPOAgent(action_dim, device=run_device)
 
     writer = SummaryWriter()
 
     print("Initializing buffer and shared state...")
     with torch.no_grad():
-        buffer = get_default_stored_data(NUM_WORKERS, ROLLOUT_STEPS, action_dim)
-        for key in buffer.keys():
-            buffer[key] = buffer[key].share_memory_()
+        #zero_dict = get_default_stored_data(NUM_WORKERS, ROLLOUT_STEPS, action_dim)
+        #buffer = {}
+        #for key in zero_dict.keys():
+        #    buffer[key] = list(zero_dict[key].share_memory_())
 
-    shared_state_dict = {}
-    shared_state_dict['agent_state'] = agent.state_dict()
-    for key in shared_state_dict['agent_state']['RNDModel'].keys():
-        shared_state_dict['agent_state']['RNDModel'][key] = shared_state_dict['agent_state']['RNDModel'][key].share_memory_()
-    for key in shared_state_dict['agent_state']['ActorCritic'].keys():
-        shared_state_dict['agent_state']['ActorCritic'][key] = shared_state_dict['agent_state']['ActorCritic'][key].share_memory_()
+        #buffer = []
+        #for key in sorted(zero_dict.keys()):
+        #    buffer.append(zero_dict[key].share_memory_())
+
+        buffer = create_buffer(NUM_WORKERS, ROLLOUT_STEPS, action_dim)
+
+    shared_model = RNDPPOAgent(action_dim, device=run_device)
+
+    shared_model.share_memory()
 
     parent_conn, child_conn = Pipe()
 
     print("Initializing Environment Runner...")
     env_runner = ParallelEnvironmentRunner(
-        NUM_WORKERS, action_dim, ROLLOUT_STEPS, frozen_agent, init_state,
-        buffer, shared_state_dict, EPOCHS,
+        NUM_WORKERS, action_dim, ROLLOUT_STEPS, shared_model, init_state,
+        buffer, EPOCHS,
         parent_conn, writer,
     )
     if state_dict and "N_Episodes" in state_dict.keys():
@@ -85,7 +114,7 @@ def train_montezuma():
         target=run_rnd_trainer,
         args=(
             NUM_WORKERS, 4, child_conn, agent,
-            buffer, shared_state_dict, EPOCHS, state_dict
+            buffer, shared_model, EPOCHS, state_dict
         )
     )
     learner.start()
