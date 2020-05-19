@@ -247,7 +247,7 @@ class ParallelEnvironmentRunner:
                 rand_act,
                 compute_agent_outputs=False
             )
-            self.current_state = self.stored_data["next_states"][:, idx]
+            self.current_state = self.stored_data["next_states"][:, 0]
         self.reset_stored_data()
         self.reset_current_state()
 
