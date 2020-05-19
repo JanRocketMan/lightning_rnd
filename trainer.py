@@ -140,7 +140,7 @@ class RNDTrainer(Process):
     def get_dataloader(self, ext_target, int_target, total_adv, next_states):
         from torch.utils import data
 
-        states_tensor = self.stored_data["states"].reshape(-1, 4, 84, 84).astype('float') / 255
+        states_tensor = self.stored_data["states"].reshape(-1, 4, 84, 84).float() / 255
         actions_tensor = self.stored_data["actions"].reshape(-1)
         log_prob_old = self.stored_data["log_prob_policies"].reshape(-1)
 
