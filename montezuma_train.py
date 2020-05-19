@@ -1,6 +1,7 @@
 import gym
 import torch
 from torch.multiprocessing import Process, Pipe, set_start_method
+from multiprocessing import Lock
 
 from config import default_config
 from environments import AtariEnvironmentWrapper
@@ -66,7 +67,7 @@ def train_montezuma():
     env_runner = ParallelEnvironmentRunner(
         NUM_WORKERS, action_dim, ROLLOUT_STEPS, frozen_agent, init_state,
         buffer, shared_state_dict, EPOCHS,
-        child_conn, writer,
+        parent_conn, writer,
     )
     if state_dict and "N_Episodes" in state_dict.keys():
         env_runner.log_episode = state_dict["N_Episodes"]
@@ -74,7 +75,7 @@ def train_montezuma():
     print("Done, initializing RNDTrainer...")
 
     trainer = RNDTrainer(
-        NUM_WORKERS, 4, parent_conn, agent,
+        NUM_WORKERS, 4, child_conn, agent,
         buffer, shared_state_dict, EPOCHS, 
         state_dict=state_dict
     )
@@ -83,9 +84,9 @@ def train_montezuma():
 
     trainer.start()
     env_runner.run_agent()
-    #env_runner.start()
 
     trainer.join()
+    #env_runner.join()
     print("Finished!")
 
 

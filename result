@@ -1,0 +1,28 @@
+Initializing agent...
+Initializing buffer and shared state...
+Initializing Environment Runner...
+Done, initializing RNDTrainer...
+Done, training
+L -1: Sent to agent that everything is ok
+L 0: passed episodes 0
+L 0: Waited for agent to finish
+L 0: states before train step tensor(0, dtype=torch.uint8) tensor(0, dtype=torch.uint8)
+L 0: Loaded stored data & send agent state
+A 0: Waited for learner to finish
+A 0: Loaded new actor state
+A 0: Updated trajectories
+A 0: End of step
+A 1: Waited for learner to finish
+A 1: Loaded new actor state
+A 1: Updated trajectories
+A 1: End of step
+A 2: Waited for learner to finish
+A 2: Loaded new actor state
+Exception in actor process
+
+L 0: Made train step
+L 0: states after tr step tensor(0, dtype=torch.uint8) tensor(0, dtype=torch.uint8)
+L 1: passed episodes 0
+L 1: Waited for agent to finish
+L 1: states before train step tensor(0, dtype=torch.uint8) tensor(0, dtype=torch.uint8)
+L 1: Loaded stored data & send agent state

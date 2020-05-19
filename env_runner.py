@@ -1,4 +1,6 @@
 import traceback
+import threading
+from copy import deepcopy
 import numpy as np
 
 from torch.multiprocessing import Pipe
@@ -151,15 +153,30 @@ class ParallelEnvironmentRunner:
             )
             self.push_to_stored_data('int_rewards', int_rew, step_idx)
 
-    def run_agent(self):
+    def run_agent(self, lock=threading.Lock()):
         try:
-            for _ in range(self.num_epochs):
+            for i in range(self.num_epochs):
                 finished = self.conn_to_learner.recv()
+
+                print("A %d: Waited for learner to finish" % i)
 
                 self.log_total_steps += 1
                 self.reset_stored_data()
 
-                self.actor_agent.load_state_dict(self.shared_state_dict["agent_state"])
+                with lock:
+                    new_rnd_state, new_agent_state = {}, {}
+                    rnd_shared_state = self.shared_state_dict['agent_state']['RNDModel']
+                    agent_shared_state = self.shared_state_dict['agent_state']['ActorCritic']
+
+                    for key in rnd_shared_state.keys():
+                        new_rnd_state[key] = deepcopy(rnd_shared_state[key])
+                    for key in agent_shared_state.keys():
+                        new_agent_state[key] = deepcopy(agent_shared_state[key])
+
+                    new_state_dict = {"RNDModel": new_rnd_state, "ActorCritic": new_agent_state}
+                    self.actor_agent.load_state_dict(new_state_dict)
+
+                print("A %d: Loaded new actor state" % i)
 
                 for idx in range(self.rollout_steps):
                     self.run_agent_step(
@@ -176,13 +193,17 @@ class ParallelEnvironmentRunner:
                     self.push_to_stored_data('ext_values', ext_value, self.rollout_steps)
                     self.push_to_stored_data('int_values', int_value, self.rollout_steps)
 
-                for key in self.stored_data.keys():
-                    self.buffer[key] = self.stored_data[key]
+                with lock:
+                    for key in self.stored_data.keys():
+                        self.buffer[key] = deepcopy(self.stored_data[key])
+
+                print("A %d: Updated trajectories" % i)
 
                 self.conn_to_learner.send(
                     self.passed_episodes
                 )
                 self.passed_episodes = 0
+                print("A %d: End of step" % i)
 
         except KeyboardInterrupt:
             pass  # Return silently.
@@ -250,3 +271,4 @@ class ParallelEnvironmentRunner:
 
     def __del__(self):
         self.join_all_workers()
+        self.conn_to_learner.close()

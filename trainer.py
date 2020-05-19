@@ -1,11 +1,13 @@
 import torch
+from copy import deepcopy
 import traceback
+import threading
 
 from torch.optim import Adam
 from tensorboardX import SummaryWriter
 
 from config import default_config
-from env_runner import ParallelEnvironmentRunner
+from env_runner import ParallelEnvironmentRunner, get_default_stored_data
 from rnd_agent import RNDPPOAgent
 from utils import RewardForwardFilter, RunningMeanStd, make_train_data
 
@@ -67,6 +69,8 @@ class RNDTrainer(Process):
         self.shared_state_dict = shared_state_dict
         self.num_epochs = num_epochs
 
+        self.stored_data = {}
+
     def get_intrinsic_rewards(self):
         curr_data = self.stored_data["next_states"].reshape(-1, 4, IMAGE_HEIGHT, IMAGE_WIDTH)
         next_rewards = self.agent.get_intrinsic_reward(
@@ -85,17 +89,32 @@ class RNDTrainer(Process):
         self.stored_data["intrinsic_rewards"] /= (self.reward_stats.std + 1e-6)
         self.stored_data["rewards"] = torch.clamp(self.stored_data["rewards"], -1, 1)
 
-    def run(self):
+    def run(self, lock=threading.Lock()):
         try:
             super(RNDTrainer, self).run()
-            self.shared_state_dict['agent_state'] = self.agent.state_dict()
+            with lock:
+                self.shared_state_dict['agent_state'] = deepcopy(self.agent.state_dict())
             self.conn_to_actor.send(True)
+            print("L -1: Sent to agent that everything is ok")
 
             for k in range(self.num_epochs):
                 passed_episodes = self.conn_to_actor.recv()
+                print("L %d: passed episodes" % k, passed_episodes)
+                print("L %d: Waited for agent to finish" % k)
 
-                self.stored_data = self.buffer
-                self.shared_state_dict['agent_state'] = self.agent.state_dict()
+                with lock:
+                    for key in self.buffer.keys():
+                        self.stored_data[key] = deepcopy(self.buffer[key])
+                    rnd_shared_state = self.shared_state_dict['agent_state']['RNDModel']
+                    agent_shared_state = self.shared_state_dict['agent_state']['ActorCritic']
+
+                    for key in rnd_shared_state.keys():
+                        rnd_shared_state[key] = deepcopy(self.agent.state_dict()["RNDModel"][key])
+                    for key in agent_shared_state.keys():
+                        agent_shared_state[key] = deepcopy(self.agent.state_dict()["ActorCritic"][key])
+
+                print("L %d: states before train step" % k, self.stored_data["states"].min(), self.stored_data["states"].max())
+                print("L %d: Loaded stored data & send agent state" % k)
 
                 self.conn_to_actor.send(True)
 
@@ -127,6 +146,8 @@ class RNDTrainer(Process):
                         )
                     )
                 self.train_step(c_loader)
+                print("L %d: Made train step" % k)
+                print("L %d: states after tr step" % k, self.stored_data["states"].min(), self.stored_data["states"].max())
 
                 if self.n_updates % 100 == 0:
                     torch.save(self.state_dict(), SAVE_PATH)
@@ -188,6 +209,3 @@ class RNDTrainer(Process):
         self.n_steps = state_dict["N_Steps"]
         self.n_updates = state_dict["N_Updates"]
         self.n_episodes = state_dict["N_Episodes"]
-
-    def __del__(self):
-        self.conn_to_actor.close()
