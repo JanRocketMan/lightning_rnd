@@ -1,9 +1,6 @@
-from copy import deepcopy
 import traceback
-from threading import Lock
 
-import numpy as np
-from torch.multiprocessing import Pipe, Process
+from torch.multiprocessing import Pipe
 import torch
 from config import default_config
 
@@ -22,43 +19,40 @@ INIT_STEPS = default_config["NumInitSteps"]
 
 def get_default_stored_data(W, T, action_dim):
     return {
-        'states': np.zeros(
+        'states': torch.zeros(
             (W, T, 4, IMAGE_HEIGHT, IMAGE_WIDTH),
-            dtype=np.uint8
+            dtype=torch.uint8
         ),
-        'next_states': np.zeros(
+        'next_states': torch.zeros(
             (W, T, 4, IMAGE_HEIGHT, IMAGE_WIDTH),
-            dtype=np.uint8
+            dtype=torch.uint8
         ),
-        'actions': np.zeros((W, T), dtype=np.uint8),
-        'rewards': np.zeros((W, T), dtype=np.float32),
-        'dones': np.zeros((W, T), dtype=np.bool),
-        'real_dones': np.zeros((W, T), dtype=np.bool),
-        'ext_values': np.zeros((W, T + 1), dtype=np.float32),
-        'int_values': np.zeros((W, T + 1), dtype=np.float32),
-        'policies': np.zeros((W, T, action_dim), dtype=np.float32),
-        'log_prob_policies': np.zeros((W, T), dtype=np.float32),
-        'obs_stats': np.zeros((2, IMAGE_HEIGHT, IMAGE_WIDTH), dtype=np.float32)
+        'actions': torch.zeros((W, T), dtype=torch.long),
+        'rewards': torch.zeros((W, T)).float(),
+        'dones': torch.zeros((W, T), dtype=torch.bool),
+        'real_dones': torch.zeros((W, T), dtype=torch.bool),
+        'ext_values': torch.zeros((W, T + 1)).float(),
+        'int_values': torch.zeros((W, T + 1)).float(),
+        'policies': torch.zeros((W, T, action_dim)).float(),
+        'log_prob_policies': torch.zeros((W, T)).float(),
+        'obs_stats': torch.zeros((2, IMAGE_HEIGHT, IMAGE_WIDTH)).float()
     }
 
 
 class ParallelEnvironmentRunner:
     def __init__(
         self, num_workers: int, action_dim: int, rollout_steps: int,
-        init_agent: RNDPPOAgent, init_state: np.array,
+        init_agent: RNDPPOAgent, init_state: torch.ByteTensor,
         buffer, shared_state_dict, num_epochs,
         conn_to_learner, writer, render_envs=False,
     ):
-        #super(ParallelEnvironmentRunner, self).__init__()
-        #self.daemon = True
-
         self.num_workers = num_workers
         self.render_envs = render_envs
         self.action_dim = action_dim
         self.rollout_steps = rollout_steps
         self.writer = writer
         self.conn_to_learner = conn_to_learner
-        self.actor_agent = deepcopy(init_agent)
+        self.actor_agent = init_agent
         self.all_works = []
         self.parent_conns = []
         self.child_conns = []
@@ -72,6 +66,7 @@ class ParallelEnvironmentRunner:
 
         self.log_env = 0
         self.log_episode, self.log_steps = 0, 0
+        self.passed_episodes = 0
         self.log_reward, self.log_total_steps = 0.0, 0
 
         self.__init_workers()
@@ -82,15 +77,21 @@ class ParallelEnvironmentRunner:
         self.num_epochs = num_epochs
 
     def reset_current_state(self):
-        self.current_state = np.zeros(
+        self.current_state = torch.zeros(
             (self.num_workers,) + self.init_state.shape,
-            dtype=np.uint8
+            dtype=torch.uint8
         )
         for w in range(self.num_workers):
             self.current_state[w] = self.init_state
 
     def reset_stored_data(self):
         self.stored_data = get_default_stored_data(self.num_workers, self.rollout_steps, self.action_dim)
+
+    def push_to_stored_data(self, key, data, step_idx, worker_idx=None):
+        if worker_idx is not None:
+            self.stored_data[key][worker_idx, step_idx] = torch.from_numpy(data)
+        else:
+            self.stored_data[key][:, step_idx] = torch.from_numpy(data)
 
     def collect_env_results(self, actions, step_idx):
         """Synchronizes environments after each step"""
@@ -100,19 +101,19 @@ class ParallelEnvironmentRunner:
         for j, parent_conn in enumerate(self.parent_conns):
             new_state, reward, done, real_done = parent_conn.recv()
 
-            self.stored_data['next_states'][j, step_idx] = new_state
-            self.stored_data['rewards'][j, step_idx] = reward
-            self.stored_data['dones'][j, step_idx] = done
-            self.stored_data['real_dones'][j, step_idx] = real_done
+            self.push_to_stored_data('next_states', new_state, step_idx, j)
+            self.push_to_stored_data('rewards', reward, step_idx, j)
+            self.push_to_stored_data('dones', done, step_idx, j)
+            self.push_to_stored_data('real_dones', real_done, step_idx, j)
 
     def collect_agent_results(self, step_idx, action, ext_value, int_value, policy, log_prob_policy):
         # Collect now model-based data
-        self.stored_data['actions'][:, step_idx] = action
-        self.stored_data['states'][:, step_idx] = self.current_state
-        self.stored_data['ext_values'][:, step_idx] = ext_value
-        self.stored_data['int_values'][:, step_idx] = int_value
-        self.stored_data['policies'][:, step_idx] = policy
-        self.stored_data['log_prob_policies'][:, step_idx] = log_prob_policy
+        self.push_to_stored_data('actions', action, step_idx)
+        self.push_to_stored_data('states', self.current_state, step_idx)
+        self.push_to_stored_data('ext_values', ext_value, step_idx)
+        self.push_to_stored_data('int_values', int_value, step_idx)
+        self.push_to_stored_data('policies', policy, step_idx)
+        self.push_to_stored_data('log_prob_policies', log_prob_policy, step_idx)
 
     def run_agent_step(self, step_idx, action_fn, compute_int_reward=False, compute_agent_outputs=True, update_stats=True):
         # Predict next actions via current agent
@@ -140,13 +141,13 @@ class ParallelEnvironmentRunner:
             self.stored_data['obs_stats'][1] = self.observation_stats.std.reshape(IMAGE_HEIGHT, IMAGE_WIDTH)
 
         if compute_int_reward:
-            self.stored_data['int_rewards'][:, step_idx] = self.actor_agent.get_intrinsic_reward(
+            int_rew = self.actor_agent.get_intrinsic_reward(
                 self.preprocess_obs(self.stored_data['next_states'][:, step_idx])
             )
+            self.push_to_stored_data('int_rewards', int_rew, step_idx)
 
     def run_agent(self):
         try:
-            #super(ParallelEnvironmentRunner, self).run()
             for _ in range(self.num_epochs):
                 finished = self.conn_to_learner.recv()
 
@@ -159,7 +160,7 @@ class ParallelEnvironmentRunner:
                     self.run_agent_step(
                         idx, self.actor_agent.get_action
                     )
-                    self.current_state = deepcopy(self.stored_data["next_states"][:, idx])
+                    self.current_state = self.stored_data["next_states"][:, idx].numpy()
 
                     self.log_current_results(idx)
 
@@ -171,11 +172,12 @@ class ParallelEnvironmentRunner:
                     self.stored_data['int_values'][:, self.rollout_steps] = int_value
 
                 for key in self.stored_data.keys():
-                    self.buffer[key] = deepcopy(torch.from_numpy(self.stored_data[key]))
+                    self.buffer[key] = self.stored_data[key]
 
                 self.conn_to_learner.send(
-                    True
+                    self.passed_episodes
                 )
+                self.passed_episodes = 0
 
         except KeyboardInterrupt:
             pass  # Return silently.
@@ -186,16 +188,17 @@ class ParallelEnvironmentRunner:
             raise e
 
     def log_current_results(self, step_idx):
-        self.log_reward += self.stored_data['rewards'][self.log_env, step_idx]
+        self.log_reward += self.stored_data['rewards'][self.log_env, step_idx].item()
         self.log_steps += 1
-        if self.stored_data['real_dones'][self.log_env]:
+        if self.stored_data['real_dones'][self.log_env, step_idx]:
             self.log_episode += 1
+            self.passed_episodes += 1
             self.writer.add_scalar('data/reward_per_rollout', self.log_reward, self.log_total_steps)
             self.writer.add_scalar('data/reward_per_episode', self.log_reward, self.log_episode)
             self.writer.add_scalar('data/steps_per_episode', self.log_steps, self.log_episode)
             self.writer.add_scalar(
                 'data/max_prob_per_episode', torch.softmax(
-                    torch.from_numpy(self.stored_data["policies"][:, step_idx]),
+                    self.stored_data["policies"][:, step_idx],
                     -1
                 ).max(1)[0].mean().item()
             )
@@ -215,8 +218,8 @@ class ParallelEnvironmentRunner:
             self.child_conns.append(child_conn)
 
     def __init_obs_stats(self):
-        rand_act = lambda x: (np.random.randint(
-            0, self.action_dim, size=(self.num_workers)
+        rand_act = lambda x: (torch.randint(
+            0, self.action_dim, (self.num_workers,)
         ), 0.0, 0.0, 0.0)
 
         self.reset_stored_data()
@@ -226,12 +229,12 @@ class ParallelEnvironmentRunner:
                 rand_act,
                 compute_agent_outputs=False
             )
-            self.current_state = deepcopy(self.stored_data["next_states"][:, idx])
+            self.current_state = self.stored_data["next_states"][:, idx].numpy()
         self.reset_stored_data()
         self.reset_current_state()
 
     def preprocess_obs(self, some_states):
-        return np.clip(
+        return torch.clamp(
             (some_states[:, 3, :, :].reshape(-1, 1, IMAGE_HEIGHT, IMAGE_WIDTH) - self.observation_stats.mean) /\
                 self.observation_stats.std, -5, 5
         )

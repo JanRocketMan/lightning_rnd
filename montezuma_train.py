@@ -25,7 +25,7 @@ STATE_DICT = default_config.get("StateDict", None)
 def train_montezuma():
     env = AtariEnvironmentWrapper(ENV_NAME, False, 0, None)
     action_dim = env.env.action_space.n
-    init_state = env.reset()
+    init_state = torch.from_numpy(env.reset())
     env.env.close()
     del env
 
@@ -35,6 +35,11 @@ def train_montezuma():
     else:
         opt_device = 'none'
         run_device = 'none'
+
+    if STATE_DICT is not None:
+        state_dict = torch.load(STATE_DICT)
+    else:
+        state_dict = None
 
     print("Initializing agent...")
     agent = RNDPPOAgent(action_dim, device=opt_device)
@@ -46,7 +51,7 @@ def train_montezuma():
     with torch.no_grad():
         buffer = get_default_stored_data(NUM_WORKERS, ROLLOUT_STEPS, action_dim)
         for key in buffer.keys():
-            buffer[key] = torch.from_numpy(buffer[key]).share_memory_()
+            buffer[key] = buffer[key].share_memory_()
 
     shared_state_dict = {}
     shared_state_dict['agent_state'] = agent.state_dict()
@@ -63,14 +68,13 @@ def train_montezuma():
         buffer, shared_state_dict, EPOCHS,
         child_conn, writer,
     )
+    if "N_Episodes" in state_dict.keys():
+        env_runner.log_episode = state_dict["N_Episodes"]
+
     print("Done, initializing RNDTrainer...")
-    if STATE_DICT is not None:
-        state_dict = torch.load(STATE_DICT)
-    else:
-        state_dict = None
 
     trainer = RNDTrainer(
-        NUM_WORKERS, 4, parent_conn, agent, writer,
+        NUM_WORKERS, 4, parent_conn, agent,
         buffer, shared_state_dict, EPOCHS, 
         state_dict=state_dict
     )
