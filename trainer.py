@@ -76,12 +76,6 @@ class RNDTrainer:
         self.disc_reward = RewardForwardFilter(INT_REWARD_DISCOUNT)
 
         self.stored_data = {}
-        self.idx_to_key = {
-            i: val for i, val in enumerate(
-                ['actions', 'dones', 'ext_values', 'int_values', 'log_prob_policies',
-                'next_states', 'obs_stats', 'policies', 'real_dones', 'rewards', 'states']
-            )
-        }
 
     def get_intrinsic_rewards(self):
         curr_data = self.stored_data["next_states"].reshape(-1, 4, IMAGE_HEIGHT, IMAGE_WIDTH)
@@ -122,7 +116,12 @@ class RNDTrainer:
                 #print("L %d: states before train step" % k, self.stored_data["states"].min(), self.stored_data["states"].max())
                 #print("L %d: Loaded stored data & send agent state" % k)
 
-                self.conn_to_actor.send(True)
+                if "intrinsic_rewards" in self.stored_data.keys():
+                    self.conn_to_actor.send(
+                        self.stored_data["intrinsic_rewards"].sum().item() / self.num_workers
+                    )
+                else:
+                    self.conn_to_actor.send(0.0)
 
                 self.n_updates += 1
                 self.n_steps += (self.num_workers * ROLLOUT_STEPS)

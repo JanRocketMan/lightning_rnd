@@ -158,7 +158,7 @@ class ParallelEnvironmentRunner:
     def run_agent(self, lock=threading.Lock()):
         try:
             for i in range(self.num_epochs):
-                finished = self.conn_to_learner.recv()
+                self.next_int_rew = self.conn_to_learner.recv()
 
                 #print("A %d: Waited for learner to finish" % i)
 
@@ -194,7 +194,13 @@ class ParallelEnvironmentRunner:
                 self.conn_to_learner.send(
                     self.passed_episodes
                 )
+
+                if self.passed_episodes > 0:
+                    self.writer.add_scalar('data/int_reward_per_episode', self.next_int_rew, self.log_episode)
+                self.writer.add_scalar('data/int_reward_per_steps', self.next_int_rew, self.log_total_steps)
+
                 self.passed_episodes = 0
+
                 #print("A %d: End of step" % i)
 
         except KeyboardInterrupt:
@@ -208,6 +214,7 @@ class ParallelEnvironmentRunner:
     def log_current_results(self, step_idx):
         self.log_reward += self.stored_data['rewards'][self.log_env, step_idx].item()
         self.log_steps += 1
+
         if self.stored_data['real_dones'][self.log_env, step_idx]:
             self.log_episode += 1
             self.passed_episodes += 1
