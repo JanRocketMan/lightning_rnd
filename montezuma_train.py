@@ -77,10 +77,10 @@ def train_montezuma():
 
     #print("Done, training")
 
-    env_runner.start()
     trainer.start()
+    env_runner.run_agent()
+    #env_runner.start()
 
-    env_runner.join()
     trainer.join()
     print("Finished!")
 

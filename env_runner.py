@@ -42,15 +42,15 @@ def get_default_stored_data(W, T, action_dim):
     }
 
 
-class ParallelEnvironmentRunner(Process):
+class ParallelEnvironmentRunner:
     def __init__(
         self, num_workers: int, action_dim: int, rollout_steps: int,
         init_agent: RNDPPOAgent, init_state: np.array,
         buffer, shared_state_dict, num_epochs,
         conn_to_learner, writer, render_envs=False,
     ):
-        super(ParallelEnvironmentRunner, self).__init__()
-        self.daemon = True
+        #super(ParallelEnvironmentRunner, self).__init__()
+        #self.daemon = True
 
         self.num_workers = num_workers
         self.render_envs = render_envs
@@ -73,7 +73,6 @@ class ParallelEnvironmentRunner(Process):
         self.log_env = 0
         self.log_episode, self.log_steps = 0, 0
         self.log_reward, self.log_total_steps = 0.0, 0
-        self.no_grad_ctx = torch.no_grad()
 
         self.__init_workers()
         self.__init_obs_stats()
@@ -117,7 +116,7 @@ class ParallelEnvironmentRunner(Process):
 
     def run_agent_step(self, step_idx, action_fn, compute_int_reward=False, compute_agent_outputs=True, update_stats=True):
         # Predict next actions via current agent
-        with self.no_grad_ctx:
+        with torch.no_grad():
             action, ext_value, int_value, policy = action_fn(
                 self.current_state.astype('float') / 255
             )
@@ -126,7 +125,7 @@ class ParallelEnvironmentRunner(Process):
         self.collect_env_results(action, step_idx)
         # Collect now model-based data
         if compute_agent_outputs:
-            with self.no_grad_ctx:
+            with torch.no_grad():
                 log_prob_policy = self.actor_agent.get_policy_log_prob(
                     action, policy
                 )
@@ -145,9 +144,9 @@ class ParallelEnvironmentRunner(Process):
                 self.preprocess_obs(self.stored_data['next_states'][:, step_idx])
             )
 
-    def run(self):
+    def run_agent(self):
         try:
-            super(ParallelEnvironmentRunner, self).run()
+            #super(ParallelEnvironmentRunner, self).run()
             for _ in range(self.num_epochs):
                 finished = self.conn_to_learner.recv()
 
@@ -164,7 +163,7 @@ class ParallelEnvironmentRunner(Process):
 
                     self.log_current_results(idx)
 
-                with self.no_grad_ctx:
+                with torch.no_grad():
                     _, ext_value, int_value, _ = self.actor_agent.get_action(
                         self.current_state.astype('float') / 255
                     )

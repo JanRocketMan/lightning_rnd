@@ -74,8 +74,6 @@ class RNDTrainer(Process):
         self.shared_state_dict = shared_state_dict
         self.num_epochs = num_epochs
 
-        self.no_grad_ctx = torch.no_grad()
-
     def get_intrinsic_rewards(self):
         curr_data = self.stored_data["next_steps"].reshape(-1, 4, IMAGE_HEIGHT, IMAGE_WIDTH)
         next_rewards = self.agent.get_intrinsic_reward(
@@ -109,7 +107,7 @@ class RNDTrainer(Process):
                 self.n_updates += 1
                 self.n_steps += (self.num_workers * ROLLOUT_STEPS)
 
-                with self.no_grad_ctx:
+                with torch.no_grad():
                     self.get_intrinsic_rewards()
                     self.normalize_rewards()
                     ext_target, ext_adv = make_train_data(
