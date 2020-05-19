@@ -193,9 +193,11 @@ class ParallelEnvironmentRunner:
                     self.push_to_stored_data('ext_values', ext_value, self.rollout_steps)
                     self.push_to_stored_data('int_values', int_value, self.rollout_steps)
 
+                print("A %d: states" % i, self.stored_data["states"].min(), self.stored_data["states"].max())
                 with lock:
-                    for key in self.stored_data.keys():
+                    for key in self.buffer.keys():
                         self.buffer[key] = deepcopy(self.stored_data[key])
+                    print("A %d:" % i, [(it[0], it[1].min(), it[1].max()) for it in self.buffer.items()])
 
                 print("A %d: Updated trajectories" % i)
 

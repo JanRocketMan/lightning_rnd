@@ -1,11 +1,11 @@
 import gym
 import torch
-from torch.multiprocessing import Process, Pipe, set_start_method
+from torch.multiprocessing import Process, Pipe, set_start_method, get_context
 from multiprocessing import Lock
 
 from config import default_config
 from environments import AtariEnvironmentWrapper
-from trainer import RNDTrainer
+from trainer import run_rnd_trainer
 from rnd_agent import RNDPPOAgent
 from env_runner import ParallelEnvironmentRunner, get_default_stored_data
 from tensorboardX import SummaryWriter
@@ -74,19 +74,25 @@ def train_montezuma():
 
     print("Done, initializing RNDTrainer...")
 
-    trainer = RNDTrainer(
-        NUM_WORKERS, 4, child_conn, agent,
-        buffer, shared_state_dict, EPOCHS, 
-        state_dict=state_dict
-    )
+    #trainer = RNDTrainer(
+    #    NUM_WORKERS, 4, child_conn, agent, EPOCHS,
+    #    state_dict=state_dict
+    #)
 
     print("Done, training")
 
-    trainer.start()
+    learner = Process(
+        target=run_rnd_trainer,
+        args=(
+            NUM_WORKERS, 4, child_conn, agent,
+            buffer, shared_state_dict, EPOCHS, state_dict
+        )
+    )
+    learner.start()
+
     env_runner.run_agent()
 
-    trainer.join()
-    #env_runner.join()
+    learner.join()
     print("Finished!")
 
 

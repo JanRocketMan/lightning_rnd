@@ -6,14 +6,19 @@ Done, training
 L -1: Sent to agent that everything is ok
 L 0: passed episodes 0
 L 0: Waited for agent to finish
+L 0: [('states', tensor(0, dtype=torch.uint8), tensor(0, dtype=torch.uint8)), ('next_states', tensor(0, dtype=torch.uint8), tensor(0, dtype=torch.uint8)), ('actions', tensor(0), tensor(0)), ('rewards', tensor(0.), tensor(0.)), ('dones', tensor(False), tensor(False)), ('real_dones', tensor(False), tensor(False)), ('ext_values', tensor(0.), tensor(0.)), ('int_values', tensor(0.), tensor(0.)), ('policies', tensor(0.), tensor(0.)), ('log_prob_policies', tensor(0.), tensor(0.)), ('obs_stats', tensor(0.), tensor(0.))]
 L 0: states before train step tensor(0, dtype=torch.uint8) tensor(0, dtype=torch.uint8)
 L 0: Loaded stored data & send agent state
 A 0: Waited for learner to finish
 A 0: Loaded new actor state
+A 0: states tensor(0, dtype=torch.uint8) tensor(236, dtype=torch.uint8)
+A 0: [('states', tensor(0, dtype=torch.uint8), tensor(236, dtype=torch.uint8)), ('next_states', tensor(0, dtype=torch.uint8), tensor(236, dtype=torch.uint8)), ('actions', tensor(0), tensor(17)), ('rewards', tensor(0.), tensor(0.)), ('dones', tensor(False), tensor(False)), ('real_dones', tensor(False), tensor(False)), ('ext_values', tensor(1.3548e-06), tensor(1.9323e-05)), ('int_values', tensor(1.2004e-06), tensor(1.3969e-05)), ('policies', tensor(-1.9614e-05), tensor(2.7995e-05)), ('log_prob_policies', tensor(-2.8904), tensor(-2.8904)), ('obs_stats', tensor(0.), tensor(235.9999))]
 A 0: Updated trajectories
 A 0: End of step
 A 1: Waited for learner to finish
 A 1: Loaded new actor state
+A 1: states tensor(0, dtype=torch.uint8) tensor(236, dtype=torch.uint8)
+A 1: [('states', tensor(0, dtype=torch.uint8), tensor(236, dtype=torch.uint8)), ('next_states', tensor(0, dtype=torch.uint8), tensor(236, dtype=torch.uint8)), ('actions', tensor(0), tensor(17)), ('rewards', tensor(0.), tensor(0.)), ('dones', tensor(False), tensor(False)), ('real_dones', tensor(False), tensor(False)), ('ext_values', tensor(1.7900e-06), tensor(1.4596e-05)), ('int_values', tensor(2.5981e-06), tensor(1.6339e-05)), ('policies', tensor(-1.8850e-05), tensor(2.4993e-05)), ('log_prob_policies', tensor(-2.8904), tensor(-2.8904)), ('obs_stats', tensor(0.), tensor(235.9999))]
 A 1: Updated trajectories
 A 1: End of step
 A 2: Waited for learner to finish
@@ -24,5 +29,8 @@ L 0: Made train step
 L 0: states after tr step tensor(0, dtype=torch.uint8) tensor(0, dtype=torch.uint8)
 L 1: passed episodes 0
 L 1: Waited for agent to finish
+L 1: [('states', tensor(0, dtype=torch.uint8), tensor(0, dtype=torch.uint8)), ('next_states', tensor(0, dtype=torch.uint8), tensor(0, dtype=torch.uint8)), ('actions', tensor(0), tensor(0)), ('rewards', tensor(0.), tensor(0.)), ('dones', tensor(False), tensor(False)), ('real_dones', tensor(False), tensor(False)), ('ext_values', tensor(0.), tensor(0.)), ('int_values', tensor(0.), tensor(0.)), ('policies', tensor(0.), tensor(0.)), ('log_prob_policies', tensor(0.), tensor(0.)), ('obs_stats', tensor(0.), tensor(0.))]
 L 1: states before train step tensor(0, dtype=torch.uint8) tensor(0, dtype=torch.uint8)
 L 1: Loaded stored data & send agent state
+L 1: Made train step
+L 1: states after tr step tensor(0, dtype=torch.uint8) tensor(0, dtype=torch.uint8)

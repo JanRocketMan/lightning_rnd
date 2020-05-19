@@ -39,13 +39,18 @@ def preprocess_obs(some_states, observation_stats):
     )
 
 
-class RNDTrainer(Process):
-    def __init__(self, num_workers, loader_num_workers, conn_to_actor, agent: RNDPPOAgent,
-        buffer, shared_state_dict, num_epochs, state_dict=None
-    ):
-        super(RNDTrainer, self).__init__()
-        self.daemon = False
+def run_rnd_trainer(num_workers, loader_num_workers, conn_to_actor, agent: RNDPPOAgent, buffer, shared_state_dict, num_epochs, state_dict=None):
+    trainer_cls = RNDTrainer(
+        num_workers, loader_num_workers, conn_to_actor, agent, buffer, shared_state_dict, num_epochs, state_dict
+    )
+    trainer_cls.train()
 
+
+class RNDTrainer:
+    def __init__(self, num_workers, loader_num_workers, conn_to_actor, agent: RNDPPOAgent,
+        buffer, shared_state_dict, num_epochs,
+        state_dict=None
+    ):
         self.num_workers = num_workers
         self.loader_num_workers = loader_num_workers
         self.conn_to_actor = conn_to_actor
@@ -58,16 +63,17 @@ class RNDTrainer(Process):
         self.n_updates = 0
         self.n_steps = 0
         self.n_episodes = 0
+        self.num_epochs = num_epochs
+
+        self.buffer = buffer
+        self.shared_state_dict = shared_state_dict
+        self.num_epochs = num_epochs
 
         if state_dict is not None:
             self.load_state_dict(state_dict)
 
         self.reward_stats = RunningMeanStd()
         self.disc_reward = RewardForwardFilter(INT_REWARD_DISCOUNT)
-
-        self.buffer = buffer
-        self.shared_state_dict = shared_state_dict
-        self.num_epochs = num_epochs
 
         self.stored_data = {}
 
@@ -89,11 +95,8 @@ class RNDTrainer(Process):
         self.stored_data["intrinsic_rewards"] /= (self.reward_stats.std + 1e-6)
         self.stored_data["rewards"] = torch.clamp(self.stored_data["rewards"], -1, 1)
 
-    def run(self, lock=threading.Lock()):
+    def train(self, lock=threading.Lock()):
         try:
-            super(RNDTrainer, self).run()
-            with lock:
-                self.shared_state_dict['agent_state'] = deepcopy(self.agent.state_dict())
             self.conn_to_actor.send(True)
             print("L -1: Sent to agent that everything is ok")
 
@@ -103,6 +106,7 @@ class RNDTrainer(Process):
                 print("L %d: Waited for agent to finish" % k)
 
                 with lock:
+                    print("L %d:" % k, [(it[0], it[1].min(), it[1].max()) for it in self.buffer.items()])
                     for key in self.buffer.keys():
                         self.stored_data[key] = deepcopy(self.buffer[key])
                     rnd_shared_state = self.shared_state_dict['agent_state']['RNDModel']
