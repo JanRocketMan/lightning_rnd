@@ -27,7 +27,7 @@ agent = RNDPPOAgent(action_dim, device=device)
 torch_load = torch.load(SAVE_PATH)
 agent.load_state_dict(torch_load["Agent"])
 print("N_updates", torch_load["N_Updates"])
-agent.actor_critic_model.module.eval()
+agent.actor_critic_model.eval()
 
 env = wrappers.Monitor(env, "./" + ENV_NAME + '_example_run', force=True)
 env.reset()
