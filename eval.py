@@ -31,6 +31,7 @@ if not USETPU:
     device = 'cuda'
     print_fn = print
 else:
+    import torch_xla
     import torch_xla.core.xla_model as xm
     device = xm.xla_device()
     print_fn = xm.master_print

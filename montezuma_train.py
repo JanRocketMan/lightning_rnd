@@ -61,6 +61,7 @@ def train_montezuma():
         run_device = 'cuda:1'
         print_fn = print
     else:
+        import torch_xla
         import torch_xla.core.xla_model as xm
         opt_device = xm.xla_device()
         run_device = xm.xla_device()

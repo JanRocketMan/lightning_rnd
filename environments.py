@@ -14,6 +14,7 @@ from PIL import Image
 
 USE_TPU = default_config["UseTPU"]
 if USE_TPU:
+    import torch_xla
     import torch_xla.core.xla_model as xm
     print_fn = xm.master_print
 else:
