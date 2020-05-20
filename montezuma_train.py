@@ -15,12 +15,12 @@ try:
 except RuntimeError:
     pass
 
+USETPU = default_config["UseTPU"]
 
 NUM_WORKERS = default_config["NumWorkers"]
 ENV_NAME = default_config["EnvName"]
 EPOCHS = default_config["NumEpochs"]
 ROLLOUT_STEPS = default_config["RolloutSteps"]
-USETPU = default_config["UseTPU"]
 STATE_DICT = default_config.get("StateDict", None)
 IMAGE_HEIGHT = default_config["ImageHeight"]
 IMAGE_WIDTH = default_config["ImageWidth"]
@@ -59,21 +59,24 @@ def train_montezuma():
     if not USETPU:
         opt_device = 'cuda:0'
         run_device = 'cuda:1'
+        print_fn = print
     else:
-        opt_device = 'none'
-        run_device = 'none'
+        import torch_xla.core.xla_model as xm
+        opt_device = xm.xla_device()
+        run_device = xm.xla_device()
+        print_fn = xm.master_print
 
     if STATE_DICT is not None:
-        state_dict = torch.load(STATE_DICT)
+        state_dict = torch.load(STATE_DICT, map_location='cpu')
     else:
         state_dict = None
 
-    print("Initializing agent...")
+    print_fn("Initializing agent...")
     agent = RNDPPOAgent(action_dim, device=opt_device)
 
     writer = SummaryWriter()
 
-    print("Initializing buffer and shared state...")
+    print_fn("Initializing buffer and shared state...")
     with torch.no_grad():
         #zero_dict = get_default_stored_data(NUM_WORKERS, ROLLOUT_STEPS, action_dim)
         #buffer = {}
@@ -92,7 +95,7 @@ def train_montezuma():
 
     parent_conn, child_conn = Pipe()
 
-    print("Initializing Environment Runner...")
+    print_fn("Initializing Environment Runner...")
     env_runner = ParallelEnvironmentRunner(
         NUM_WORKERS, action_dim, ROLLOUT_STEPS, shared_model, init_state,
         buffer, EPOCHS,
@@ -101,14 +104,14 @@ def train_montezuma():
     if state_dict and "N_Episodes" in state_dict.keys():
         env_runner.log_episode = state_dict["N_Episodes"]
 
-    print("Done, initializing RNDTrainer...")
+    print_fn("Done, initializing RNDTrainer...")
 
     #trainer = RNDTrainer(
     #    NUM_WORKERS, 4, child_conn, agent, EPOCHS,
     #    state_dict=state_dict
     #)
 
-    print("Done, training")
+    print_fn("Done, training")
 
     learner = Process(
         target=run_rnd_trainer,
@@ -122,7 +125,7 @@ def train_montezuma():
     env_runner.run_agent()
 
     learner.join()
-    print("Finished!")
+    print_fn("Finished!")
 
 
 if __name__ == '__main__':
