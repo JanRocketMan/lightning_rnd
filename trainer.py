@@ -29,6 +29,7 @@ EPOCH_STEPS = default_config["EpochSteps"]
 SAVE_PATH = default_config["SavePath"]
 IMAGE_HEIGHT = default_config["ImageHeight"]
 IMAGE_WIDTH = default_config["ImageWidth"]
+VTRACE = default_config.get("UseVTraceCorrection", False)
 
 
 def preprocess_obs(some_states, observation_stats):
@@ -130,17 +131,28 @@ class RNDTrainer:
                 with torch.no_grad():
                     self.get_intrinsic_rewards()
                     self.normalize_rewards()
+
+                    if VTRACE:
+                        action, _, _, policy = self.agent.get_action(self.stored_data["states"].reshape(-1, 4, 84, 84).float() / 255)
+                        self.stored_data["new_log_prob_policies"] = self.agent.get_policy_log_prob(
+                            action, policy
+                        ).reshape(self.num_workers, -1)
+
                     ext_target, ext_adv = make_train_data(
                         self.stored_data["rewards"], self.stored_data["dones"].float(),
                         self.stored_data["ext_values"], EXT_DISCOUNT,
-                        ROLLOUT_STEPS, self.num_workers
+                        ROLLOUT_STEPS, self.num_workers,
+                        log_probs_policies_old=self.stored_data["log_prob_policies"] if VTRACE else None,
+                        log_probs_policies=self.stored_data["new_log_prob_policies"] if VTRACE else None
                     )
                     int_target, int_adv = make_train_data(
                         self.stored_data["intrinsic_rewards"], torch.zeros_like(
                             self.stored_data["intrinsic_rewards"]
                         ).float(),
                         self.stored_data["int_values"], INT_DISCOUNT,
-                        ROLLOUT_STEPS, self.num_workers
+                        ROLLOUT_STEPS, self.num_workers,
+                        log_probs_policies_old=self.stored_data["log_prob_policies"] if VTRACE else None,
+                        log_probs_policies=self.stored_data["new_log_prob_policies"] if VTRACE else None
                     )
                     total_adv = INT_COEFF * int_adv + EXT_COEFF * ext_adv
                     c_loader = self.get_dataloader(

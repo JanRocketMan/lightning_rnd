@@ -6,6 +6,6 @@ Reimplementation on Random Network Distillation for a TPU machine
 
 - [x] Separate actor and learner
 - [x] Log number of rooms visited
-- [ ] Add optional V-trace targets correction
+- [x] Add optional V-trace targets correction
 - [ ] Add TPU support
 - [ ] Add fp16 support 
