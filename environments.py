@@ -12,6 +12,12 @@ from torch.multiprocessing import Process
 from config import default_config
 from PIL import Image
 
+USE_TPU = default_config["UseTPU"]
+if USE_TPU:
+    import torch_xla.core.xla_model as xm
+    print_fn = xm.master_print
+else:
+    print_fn = print
 
 MAX_STEPS_PER_EPISODE = default_config["MaxStepsPerEpisode"]
 IMAGE_HIGHT = default_config["ImageHeight"]
@@ -174,7 +180,7 @@ class AtariEnvironmentWrapper(Environment):
 
             if done:
                 self.recent_rlist.append(self.rall)
-                print("[Episode {}({})] Step: {}  Reward: {}  Recent Reward: {}  Visited Room: [{}]".format(
+                print_fn("[Episode {}({})] Step: {}  Reward: {}  Recent Reward: {}  Visited Room: [{}]".format(
                     self.episode, self.env_idx, self.steps, self.rall, np.mean(self.recent_rlist),
                     info.get('episode', {}).get('visited_rooms', {})))
 

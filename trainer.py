@@ -16,6 +16,15 @@ from torch.multiprocessing import Process
 
 import time
 
+USE_TPU = default_config["UseTPU"]
+if USE_TPU:
+    import torch_xla.core.xla_model as xm
+    print_fn = xm.master_print
+    save_fn = xm.save
+else:
+    print_fn = print
+    save_fn = torch.save
+
 INT_REWARD_DISCOUNT = default_config["IntrinsicRewardDiscount"]
 ROLLOUT_STEPS = default_config["RolloutSteps"]
 EXT_DISCOUNT = default_config["ExtRewardDiscount"]
@@ -167,14 +176,14 @@ class RNDTrainer:
                 #print("L %d: states after tr step" % k, self.stored_data["states"].min(), self.stored_data["states"].max())
 
                 if self.n_updates % 100 == 0:
-                    torch.save(self.state_dict(), SAVE_PATH)
+                    save_fn(self.state_dict(), SAVE_PATH)
 
         except KeyboardInterrupt:
             pass  # Return silently.
         except Exception as e:
-            print("Exception in actor process")
+            print_fn("Exception in actor process")
             traceback.print_exc()
-            print()
+            print_fn()
             raise e
 
     def get_dataloader(self, ext_target, int_target, total_adv, next_states):
@@ -202,7 +211,10 @@ class RNDTrainer:
                     [p for p in self.agent.parameters() if p.requires_grad],
                     CLIP_GRAD_NORM
                 )
-                self.agent_optimizer.step()
+                if USE_TPU:
+                    xm.optimizer_step(self.agent_optimizer, barrier=True)
+                else:
+                    self.agent_optimizer.step()
 
     def state_dict(self):
         return {
@@ -219,7 +231,10 @@ class RNDTrainer:
         }
 
     def load_state_dict(self, state_dict):
+        orig_device = self.agent.device
+        self.agent = self.agent.to('cpu')
         self.agent.load_state_dict(state_dict["Agent"])
+        self.agent = self.agent.to(orig_device)
         self.agent_optimizer.load_state_dict(state_dict["Optimizer"])
         self.reward_stats.mean, self.reward_stats.var = state_dict["Reward_Stats"]
 
