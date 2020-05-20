@@ -181,7 +181,7 @@ class AtariEnvironmentWrapper(Environment):
                 self.history = self.reset()
 
             self.child_conn.send(
-                [self.history[:, :, :], reward, force_done, done]
+                [self.history[:, :, :], reward, force_done, done, info.get('episode', {}).get('visited_rooms', {})]
             )
 
     def reset(self):

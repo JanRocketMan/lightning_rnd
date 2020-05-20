@@ -71,15 +71,13 @@ class ParallelEnvironmentRunner:
         self.log_episode, self.log_steps = 0, 0
         self.passed_episodes = 0
         self.log_reward, self.log_total_steps = 0.0, 0
+        self.log_rooms_visited = set()
 
         self.__init_workers()
         self.__init_obs_stats()
 
         self.buffer = buffer
         self.num_epochs = num_epochs
-        with threading.Lock():
-            self.actor_agent.reset_params()
-            print("Init state dict:", self.actor_agent.state_dict()["RNDModel"]['distill_net.9.weight'][:6, 0])
 
     def reset_current_state(self):
         self.current_state = torch.zeros(
@@ -107,7 +105,10 @@ class ParallelEnvironmentRunner:
             parent_conn.send(action)
 
         for j, parent_conn in enumerate(self.parent_conns):
-            new_state, reward, done, real_done = parent_conn.recv()
+            new_state, reward, done, real_done, visited_rooms = parent_conn.recv()
+
+            if j == self.log_env:
+                self.log_rooms_visited.update(visited_rooms)
 
             self.push_to_stored_data('next_states', new_state, step_idx, j)
             self.push_to_stored_data('rewards', reward, step_idx, j)
@@ -227,7 +228,10 @@ class ParallelEnvironmentRunner:
                     -1
                 ).max(1)[0].mean().item()
             )
+            self.writer.add_scalar('data/num_rooms_visited_per_episode', len(self.log_rooms_visited), self.log_episode)
+
             self.log_reward, self.log_steps = 0.0, 0
+            self.log_rooms_visited = set()
 
     def __init_workers(self):
         for i in range(self.num_workers):

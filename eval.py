@@ -34,6 +34,7 @@ env.reset()
 obs = np.zeros((4, H, W), dtype='float32')
 
 total_reward = 0
+all_visited_rooms = set()
 for i in range(4500):
     with torch.no_grad():
         new_action, _, _, _ = agent.get_action(obs.reshape((1, 4, H, W)))
@@ -45,6 +46,8 @@ for i in range(4500):
     if done:
         print("Finished, total reward is %d" % total_reward)
         break
+    all_visited_rooms.update(info.get('episode', {}).get('visited_rooms', {}))
 if not done:
     print("Interrupted after 4500 steps, total reward is %d" % total_reward)
 env.close()
+print("All visited rooms:", all_visited_rooms)
