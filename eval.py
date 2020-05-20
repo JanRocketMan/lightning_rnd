@@ -31,15 +31,15 @@ if not USETPU:
     device = 'cuda'
     print_fn = print
 else:
-    #import torch_xla.core.xla_model as xm
-    #device = xm.xla_device()
-    #print_fn = xm.master_print
-    device = 'cpu'
-    print_fn = print
+    import torch_xla.core.xla_model as xm
+    device = xm.xla_device()
+    print_fn = xm.master_print
+    #device = 'cpu'
+    #print_fn = print
 
 agent = agent.to(device)
 
-print_fn("N_updates", torch_load["N_Updates"])
+print_fn("N_updates " + str( torch_load["N_Updates"]))
 agent.actor_critic_model.eval()
 
 env = wrappers.Monitor(env, "./" + ENV_NAME + '_example_run', force=True)
@@ -63,4 +63,4 @@ for i in range(4500):
 if not done:
     print_fn("Interrupted after 4500 steps, total reward is %d" % total_reward)
 env.close()
-print_fn("All visited rooms:", all_visited_rooms)
+print_fn("All visited rooms: " + str(all_visited_rooms))
