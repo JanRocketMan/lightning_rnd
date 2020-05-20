@@ -18,14 +18,23 @@ def pre_proc(X, h, w):
 
 ENV_NAME = default_config["EnvName"]
 SAVE_PATH = default_config["SavePath"]
+USETPU = default_config["UseTPU"]
 H, W = default_config["ImageHeight"], default_config["ImageWidth"]
 
 env = MontezumaInfoWrapper(MaxAndSkipEnv(gym.make(ENV_NAME), is_render=False), room_address=3)
 action_dim = env.action_space.n
-device = 'cuda'
-agent = RNDPPOAgent(action_dim, device=device)
+agent = RNDPPOAgent(action_dim, device='cpu')
 torch_load = torch.load(SAVE_PATH)
 agent.load_state_dict(torch_load["Agent"])
+
+if not USETPU:
+    device = 'cuda'
+else:
+    import torch_xla.core.xla_model as xm
+    device = xm.xla_device()
+
+agent = agent.to(device)
+
 print("N_updates", torch_load["N_Updates"])
 agent.actor_critic_model.eval()
 
