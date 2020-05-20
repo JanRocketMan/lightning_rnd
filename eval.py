@@ -24,18 +24,22 @@ H, W = default_config["ImageHeight"], default_config["ImageWidth"]
 env = MontezumaInfoWrapper(MaxAndSkipEnv(gym.make(ENV_NAME), is_render=False), room_address=3)
 action_dim = env.action_space.n
 agent = RNDPPOAgent(action_dim, device='cpu')
-torch_load = torch.load(SAVE_PATH)
+torch_load = torch.load(SAVE_PATH, map_location=torch.device('cpu'))
 agent.load_state_dict(torch_load["Agent"])
 
 if not USETPU:
     device = 'cuda'
+    print_fn = print
 else:
-    import torch_xla.core.xla_model as xm
-    device = xm.xla_device()
+    #import torch_xla.core.xla_model as xm
+    #device = xm.xla_device()
+    #print_fn = xm.master_print
+    device = 'cpu'
+    print_fn = print
 
 agent = agent.to(device)
 
-print("N_updates", torch_load["N_Updates"])
+print_fn("N_updates", torch_load["N_Updates"])
 agent.actor_critic_model.eval()
 
 env = wrappers.Monitor(env, "./" + ENV_NAME + '_example_run', force=True)
@@ -53,10 +57,10 @@ for i in range(4500):
     obs[:3, :, :] = obs[1:, :, :]
     obs[3, :, :] = pre_proc(new_obs, H, W)
     if done:
-        print("Finished, total reward is %d" % total_reward)
+        print_fn("Finished, total reward is %d" % total_reward)
         break
     all_visited_rooms.update(info.get('episode', {}).get('visited_rooms', {}))
 if not done:
-    print("Interrupted after 4500 steps, total reward is %d" % total_reward)
+    print_fn("Interrupted after 4500 steps, total reward is %d" % total_reward)
 env.close()
-print("All visited rooms:", all_visited_rooms)
+print_fn("All visited rooms:", all_visited_rooms)
