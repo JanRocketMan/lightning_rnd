@@ -14,4 +14,8 @@ Reimplementation on Random Network Distillation for a TPU machine
 
 Montezuma Revenge
 
+Training with only intrinsic reward
 ![hippo](montezuma_run.gif)
+
+Training with both intrinsic and extrinsic reward
+![hippo](usual_training.gif)
