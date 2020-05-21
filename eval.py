@@ -49,9 +49,11 @@ obs = np.zeros((4, H, W), dtype='float32')
 
 total_reward = 0
 all_visited_rooms = set()
-for i in range(4500):
+for i in range(6000):
     with torch.no_grad():
         new_action, _, _, _ = agent.get_action(obs.reshape((1, 4, H, W)))
+    if np.random.rand() <= 0.25 and i > 0:
+        new_action = action
     action = new_action
     new_obs, reward, done, info = env.step(action)
     total_reward += reward

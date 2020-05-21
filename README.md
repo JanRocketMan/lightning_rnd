@@ -9,3 +9,9 @@ Reimplementation on Random Network Distillation for a TPU machine
 - [x] Add optional V-trace targets correction
 - [ ] Add TPU support
 - [ ] Add fp16 support 
+
+# Examples
+
+Montezuma Revenge
+
+![hippo](montezuma_run.gif)
