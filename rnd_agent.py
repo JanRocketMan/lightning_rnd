@@ -9,35 +9,35 @@ UPDATE_PROP = default_config["RNDUpdateProportion"]
 ENT_COEFF = default_config["PPOEntropyCoeff"]
 PPO_EPS = default_config["PPORewardEps"]
 
-class RNDPPOAgent:
+class RNDPPOAgent(torch.nn.Module):
     def __init__(self, action_dim, device):
+        super(RNDPPOAgent, self).__init__()
         self.device = device
 
-        self.actor_critic_model = torch.nn.DataParallel(
-            CNNPolicyNet(action_dim).to(self.device)
-        )
-        self.rnd_model = torch.nn.DataParallel(
-            RNDNet().to(self.device)
-        )
+        self.actor_critic_model = CNNPolicyNet(action_dim).to(self.device)
+        self.rnd_model = RNDNet().to(self.device)
 
         self.mse_crit = torch.nn.MSELoss(reduction='none')
 
     def get_action(self, states):
         states = torch.FloatTensor(states).to(self.device)
+        #print('state', states.min().item(), states.max().item(), end='\t')
 
         policy, value_ext, value_int = self.actor_critic_model(states)
+        #print('policy', policy.min(), policy.max(), 'value', value_ext.min(), value_ext.max())
         action = Categorical(torch.softmax(policy, dim=-1)).sample()
 
         return [val.cpu().numpy() for val in [action, value_ext.squeeze(), value_int.squeeze(), policy]]
 
     def get_policy_log_prob(self, actions, policy):
-        policy_dist = Categorical(torch.softmax(policy.to(self.device), dim=-1))
-        return policy_dist.log_prob(actions.to(self.device)).cpu()
+        t_policy = torch.FloatTensor(policy).to(self.device)
+        t_actions = torch.from_numpy(actions).to(self.device)
+
+        policy_dist = Categorical(torch.softmax(t_policy, dim=-1))
+        return policy_dist.log_prob(t_actions).cpu()
 
     def get_intrinsic_reward(self, states):
-        states = torch.FloatTensor(states).to(self.device)
-
-        distill_preds, random_preds = self.rnd_model(states)
+        distill_preds, random_preds = self.rnd_model(states.to(self.device))
         int_reward = (distill_preds - random_preds).pow(2).sum(1) / 2
 
         return int_reward.cpu().numpy()
@@ -91,6 +91,16 @@ class RNDPPOAgent:
             "ActorCritic": self.actor_critic_model.state_dict()
         }
 
+    def to(self, device):
+        self.rnd_model.to(device)
+        self.actor_critic_model.to(device)
+        self.device = device
+        return self
+
     def load_state_dict(self, state_dict):
         self.rnd_model.load_state_dict(state_dict["RNDModel"])
         self.actor_critic_model.load_state_dict(state_dict["ActorCritic"])
+
+    def reset_params(self):
+        self.rnd_model.init_params()
+        self.actor_critic_model.init_params()

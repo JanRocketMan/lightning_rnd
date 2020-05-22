@@ -5,9 +5,9 @@ ImageWidth: 84
 UseStickyAction: True
 StickyActionProb: 0.25
 
-NumWorkers: 256
+NumWorkers: 128
 IntrinsicRewardDiscount: 0.99
-NumInitSteps: 6400
+NumInitSteps: 1024
 
 RolloutSteps: 128
 ExtRewardDiscount: 0.999
@@ -16,15 +16,16 @@ ExtCoeff: 0.0
 IntCoeff: 1.0
 LearningRate: 0.0001
 ClipGradNorm: 10.0
-BatchSize: 8192
+BatchSize: 4096
 EpochSteps: 4
-SavePath: "/home/chervontsev/checkpoints/RndAgent.ckpt"
+SavePath: "/home/chervontsev/checkpoints/RndAgentFast.ckpt"
 
-NumEpochs: 2000
+NumEpochs: 10000
 
 RNDUpdateProportion: 0.125
 PPOEntropyCoeff: 0.001
 PPORewardEps: 0.1
 PPOAdvLambda: 0.95
+UseVTraceCorrection: False
 
 UseTPU: False

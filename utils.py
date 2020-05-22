@@ -1,5 +1,4 @@
 from config import default_config
-import numpy as np
 
 import torch
 from torch._six import inf
@@ -8,16 +7,29 @@ from config import default_config
 
 
 LAMBDA = float(default_config['PPOAdvLambda'])
+VTRACE = default_config.get("UseVTraceCorrection", False)
 
 
-def make_train_data(reward, done, value, discount, num_steps, num_workers):
-    discounted_return = np.empty([num_workers, num_steps])
+def make_train_data(
+    reward, done, value, discount,
+    num_steps, num_workers, 
+    log_probs_policies_old=None, log_probs_policies=None
+):
+    discounted_return = torch.empty([num_workers, num_steps])
     # PPO Discounted Return 
-    generalized_advanced_estimation = np.zeros((num_workers))
+    generalized_advanced_estimation = torch.zeros((num_workers)).float()
+
+    if VTRACE:
+        delta_coeffs = torch.clamp_min(
+            torch.exp(log_probs_policies - log_probs_policies_old + 1e-6),
+            1.0
+        )
 
     for t in range(num_steps - 1, -1, -1):
         delta = -value[:, t] + reward[:, t] + discount * value[:, t + 1] * (1 - done[:, t])
         generalized_advanced_estimation = delta + discount * LAMBDA * (1 - done[:, t]) * generalized_advanced_estimation
+        if VTRACE:
+            generalized_advanced_estimation *= delta_coeffs[:, t]
         discounted_return[:, t] = generalized_advanced_estimation + value[:, t]
     advantage = discounted_return - value[:, :-1]
     return discounted_return.reshape([-1]), advantage.reshape([-1])
@@ -25,8 +37,8 @@ def make_train_data(reward, done, value, discount, num_steps, num_workers):
 
 class RunningMeanStd(object):
     def __init__(self, epsilon=1e-4, shape=()):
-        self.mean = np.zeros(shape, dtype=np.float64)
-        self.var = np.ones(shape, dtype=np.float64)
+        self.mean = torch.zeros(shape).float()
+        self.var = torch.ones(shape).float()
         self.count = epsilon
 
     @property
@@ -34,14 +46,14 @@ class RunningMeanStd(object):
         return self.var ** 0.5
 
     def update(self, x):
-        batch_mean, batch_var = np.mean(x, axis=0), np.var(x, axis=0)
+        batch_mean, batch_var = torch.mean(x, dim=0), torch.var(x, dim=0)
         self.update_from_moments(batch_mean, batch_var, x.shape[0])
 
     def update_from_moments(self, batch_mean, batch_var, batch_count):
         delta = batch_mean - self.mean
         tot_count = self.count + batch_count
         self.mean = self.mean + delta * batch_count / tot_count
-        M2 = self.var * (self.count) + batch_var * (batch_count) + np.square(delta) * self.count * batch_count / (self.count + batch_count)
+        M2 = self.var * (self.count) + batch_var * (batch_count) + delta.pow(2) * self.count * batch_count / (self.count + batch_count)
         self.var = M2 / (self.count + batch_count)
         self.count = batch_count + self.count
 
@@ -57,35 +69,3 @@ class RewardForwardFilter(object):
         else:
             self.rewems = self.rewems * self.gamma + rews
         return self.rewems
-
-
-def global_grad_norm_(parameters, norm_type=2):
-    r"""Clips gradient norm of an iterable of parameters.
-
-    The norm is computed over all gradients together, as if they were
-    concatenated into a single vector. Gradients are modified in-place.
-
-    Arguments:
-        parameters (Iterable[Tensor] or Tensor): an iterable of Tensors or a
-            single Tensor that will have gradients normalized
-        max_norm (float or int): max norm of the gradients
-        norm_type (float or int): type of the used p-norm. Can be ``'inf'`` for
-            infinity norm.
-
-    Returns:
-        Total norm of the parameters (viewed as a single vector).
-    """
-    if isinstance(parameters, torch.Tensor):
-        parameters = [parameters]
-    parameters = list(filter(lambda p: p.grad is not None, parameters))
-    norm_type = float(norm_type)
-    if norm_type == inf:
-        total_norm = max(p.grad.data.abs().max() for p in parameters)
-    else:
-        total_norm = 0
-        for p in parameters:
-            param_norm = p.grad.data.norm(norm_type)
-            total_norm += param_norm.item() ** norm_type
-        total_norm = total_norm ** (1. / norm_type)
-
-    return total_norm

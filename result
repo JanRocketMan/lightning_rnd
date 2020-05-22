@@ -1,0 +1,181 @@
+Initializing agent...
+Initializing buffer and shared state...
+Initializing Environment Runner...
+Init state dict: tensor([-0.1178,  0.0323, -0.0301,  0.0519, -0.0388, -0.0282], device='cuda:1')
+Done, initializing RNDTrainer...
+Done, training
+L -1: Sent to agent that everything is ok
+L 0: passed episodes 0
+L 0: Waited for agent to finish
+L 0: [('states', tensor(0, dtype=torch.uint8), tensor(236, dtype=torch.uint8)), ('next_states', tensor(0, dtype=torch.uint8), tensor(236, dtype=torch.uint8)), ('actions', tensor(0), tensor(17)), ('rewards', tensor(0.), tensor(0.)), ('dones', tensor(False), tensor(False)), ('real_dones', tensor(False), tensor(False)), ('ext_values', tensor(-2.7361e-06), tensor(1.1634e-05)), ('int_values', tensor(-1.2543e-05), tensor(1.4732e-06)), ('policies', tensor(-1.8974e-05), tensor(2.5377e-05)), ('log_prob_policies', tensor(-2.8904), tensor(-2.8904)), ('obs_stats', tensor(0.), tensor(235.9999))]
+L 0: agent state tensor([-0.0300, -0.0201, -0.0147,  0.1003,  0.0042,  0.0854], device='cuda:1')
+L 0: states before train step tensor(0, dtype=torch.uint8) tensor(236, dtype=torch.uint8)
+L 0: Loaded stored data & send agent state
+L 0: Made train step
+L 0: states after tr step tensor(0, dtype=torch.uint8) tensor(236, dtype=torch.uint8)
+L 1: passed episodes 0
+L 1: Waited for agent to finish
+L 1: [('states', tensor(0, dtype=torch.uint8), tensor(236, dtype=torch.uint8)), ('next_states', tensor(0, dtype=torch.uint8), tensor(236, dtype=torch.uint8)), ('actions', tensor(0), tensor(17)), ('rewards', tensor(0.), tensor(0.)), ('dones', tensor(False), tensor(False)), ('real_dones', tensor(False), tensor(False)), ('ext_values', tensor(-5.7027e-06), tensor(9.0614e-06)), ('int_values', tensor(-1.3192e-05), tensor(1.1664e-06)), ('policies', tensor(-1.8644e-05), tensor(2.5216e-05)), ('log_prob_policies', tensor(-2.8904), tensor(-2.8904)), ('obs_stats', tensor(0.), tensor(235.9999))]
+L 1: agent state tensor([-0.0296, -0.0205, -0.0144,  0.1006,  0.0046,  0.0858], device='cuda:1')
+L 1: states before train step tensor(0, dtype=torch.uint8) tensor(236, dtype=torch.uint8)
+L 1: Loaded stored data & send agent state
+L 1: Made train step
+L 1: states after tr step tensor(0, dtype=torch.uint8) tensor(236, dtype=torch.uint8)
+L 2: passed episodes 0
+L 2: Waited for agent to finish
+L 2: [('states', tensor(0, dtype=torch.uint8), tensor(236, dtype=torch.uint8)), ('next_states', tensor(0, dtype=torch.uint8), tensor(236, dtype=torch.uint8)), ('actions', tensor(0), tensor(17)), ('rewards', tensor(0.), tensor(0.)), ('dones', tensor(False), tensor(False)), ('real_dones', tensor(False), tensor(False)), ('ext_values', tensor(-0.0004), tensor(-0.0003)), ('int_values', tensor(0.0049), tensor(0.0056)), ('policies', tensor(-0.0032), tensor(0.0035)), ('log_prob_policies', tensor(-2.8931), tensor(-2.8867)), ('obs_stats', tensor(0.), tensor(235.9999))]
+L 2: agent state tensor([-0.0293, -0.0209, -0.0140,  0.1008,  0.0048,  0.0860], device='cuda:1')
+L 2: states before train step tensor(0, dtype=torch.uint8) tensor(236, dtype=torch.uint8)
+L 2: Loaded stored data & send agent state
+L 2: Made train step
+L 2: states after tr step tensor(0, dtype=torch.uint8) tensor(236, dtype=torch.uint8)
+L 3: passed episodes 0
+L 3: Waited for agent to finish
+L 3: [('states', tensor(0, dtype=torch.uint8), tensor(236, dtype=torch.uint8)), ('next_states', tensor(0, dtype=torch.uint8), tensor(236, dtype=torch.uint8)), ('actions', tensor(0), tensor(17)), ('rewards', tensor(0.), tensor(0.)), ('dones', tensor(False), tensor(False)), ('real_dones', tensor(False), tensor(False)), ('ext_values', tensor(-0.0010), tensor(-0.0009)), ('int_values', tensor(0.0263), tensor(0.0292)), ('policies', tensor(-0.0158), tensor(0.0178)), ('log_prob_policies', tensor(-2.9044), tensor(-2.8716)), ('obs_stats', tensor(0.), tensor(235.9999))]
+L 3: agent state tensor([-0.0292, -0.0212, -0.0137,  0.1007,  0.0049,  0.0859], device='cuda:1')
+L 3: states before train step tensor(0, dtype=torch.uint8) tensor(236, dtype=torch.uint8)
+L 3: Loaded stored data & send agent state
+L 3: Made train step
+L 3: states after tr step tensor(0, dtype=torch.uint8) tensor(236, dtype=torch.uint8)
+L 4: passed episodes 0
+L 4: Waited for agent to finish
+L 4: [('states', tensor(0, dtype=torch.uint8), tensor(236, dtype=torch.uint8)), ('next_states', tensor(0, dtype=torch.uint8), tensor(236, dtype=torch.uint8)), ('actions', tensor(0), tensor(17)), ('rewards', tensor(0.), tensor(0.)), ('dones', tensor(False), tensor(False)), ('real_dones', tensor(False), tensor(False)), ('ext_values', tensor(-4.5298e-05), tensor(-2.5162e-05)), ('int_values', tensor(0.0923), tensor(0.0997)), ('policies', tensor(-0.0433), tensor(0.0478)), ('log_prob_policies', tensor(-2.9307), tensor(-2.8406)), ('obs_stats', tensor(0.), tensor(235.9999))]
+L 4: agent state tensor([-0.0290, -0.0215, -0.0135,  0.1006,  0.0050,  0.0857], device='cuda:1')
+L 4: states before train step tensor(0, dtype=torch.uint8) tensor(236, dtype=torch.uint8)
+L 4: Loaded stored data & send agent state
+L 4: Made train step
+L 4: states after tr step tensor(0, dtype=torch.uint8) tensor(236, dtype=torch.uint8)
+L 5: passed episodes 0
+L 5: Waited for agent to finish
+L 5: [('states', tensor(0, dtype=torch.uint8), tensor(236, dtype=torch.uint8)), ('next_states', tensor(0, dtype=torch.uint8), tensor(236, dtype=torch.uint8)), ('actions', tensor(0), tensor(17)), ('rewards', tensor(0.), tensor(0.)), ('dones', tensor(False), tensor(True)), ('real_dones', tensor(False), tensor(True)), ('ext_values', tensor(-0.0043), tensor(-0.0040)), ('int_values', tensor(0.2634), tensor(0.2839)), ('policies', tensor(-0.0811), tensor(0.0599)), ('log_prob_policies', tensor(-2.9696), tensor(-2.8294)), ('obs_stats', tensor(0.), tensor(235.9999))]
+L 5: agent state tensor([-0.0289, -0.0217, -0.0133,  0.1006,  0.0049,  0.0855], device='cuda:1')
+L 5: states before train step tensor(0, dtype=torch.uint8) tensor(236, dtype=torch.uint8)
+L 5: Loaded stored data & send agent state
+L 5: Made train step
+L 5: states after tr step tensor(0, dtype=torch.uint8) tensor(236, dtype=torch.uint8)
+L 6: passed episodes 0
+L 6: Waited for agent to finish
+L 6: [('states', tensor(0, dtype=torch.uint8), tensor(236, dtype=torch.uint8)), ('next_states', tensor(0, dtype=torch.uint8), tensor(236, dtype=torch.uint8)), ('actions', tensor(0), tensor(17)), ('rewards', tensor(0.), tensor(0.)), ('dones', tensor(False), tensor(True)), ('real_dones', tensor(False), tensor(True)), ('ext_values', tensor(-0.0043), tensor(-0.0039)), ('int_values', tensor(0.4993), tensor(0.5444)), ('policies', tensor(-0.1103), tensor(0.0651)), ('log_prob_policies', tensor(-2.9994), tensor(-2.8262)), ('obs_stats', tensor(0.), tensor(235.9999))]
+L 6: agent state tensor([-0.0288, -0.0219, -0.0132,  0.1005,  0.0049,  0.0854], device='cuda:1')
+L 6: states before train step tensor(0, dtype=torch.uint8) tensor(236, dtype=torch.uint8)
+L 6: Loaded stored data & send agent state
+L 6: Made train step
+L 6: states after tr step tensor(0, dtype=torch.uint8) tensor(236, dtype=torch.uint8)
+L 7: passed episodes 0
+L 7: Waited for agent to finish
+L 7: [('states', tensor(0, dtype=torch.uint8), tensor(236, dtype=torch.uint8)), ('next_states', tensor(0, dtype=torch.uint8), tensor(236, dtype=torch.uint8)), ('actions', tensor(0), tensor(17)), ('rewards', tensor(0.), tensor(0.)), ('dones', tensor(False), tensor(True)), ('real_dones', tensor(False), tensor(True)), ('ext_values', tensor(-0.0056), tensor(-0.0052)), ('int_values', tensor(0.5472), tensor(0.5903)), ('policies', tensor(-0.1185), tensor(0.0736)), ('log_prob_policies', tensor(-3.0081), tensor(-2.8184)), ('obs_stats', tensor(0.), tensor(235.9999))]
+L 7: agent state tensor([-0.0287, -0.0220, -0.0131,  0.1003,  0.0050,  0.0852], device='cuda:1')
+L 7: states before train step tensor(0, dtype=torch.uint8) tensor(236, dtype=torch.uint8)
+L 7: Loaded stored data & send agent state
+L 7: Made train step
+L 7: states after tr step tensor(0, dtype=torch.uint8) tensor(236, dtype=torch.uint8)
+L 8: passed episodes 1
+L 8: Waited for agent to finish
+L 8: [('states', tensor(0, dtype=torch.uint8), tensor(236, dtype=torch.uint8)), ('next_states', tensor(0, dtype=torch.uint8), tensor(236, dtype=torch.uint8)), ('actions', tensor(0), tensor(17)), ('rewards', tensor(0.), tensor(0.)), ('dones', tensor(False), tensor(True)), ('real_dones', tensor(False), tensor(True)), ('ext_values', tensor(-0.0030), tensor(-0.0027)), ('int_values', tensor(0.7841), tensor(0.8519)), ('policies', tensor(-0.1668), tensor(0.1043)), ('log_prob_policies', tensor(-3.0542), tensor(-2.7878)), ('obs_stats', tensor(0.), tensor(235.9999))]
+L 8: agent state tensor([-0.0287, -0.0221, -0.0130,  0.1001,  0.0051,  0.0850], device='cuda:1')
+L 8: states before train step tensor(0, dtype=torch.uint8) tensor(236, dtype=torch.uint8)
+L 8: Loaded stored data & send agent state
+A 0: Waited for learner to finish
+A 0: Loaded new actor state
+A 0: states tensor(0, dtype=torch.uint8) tensor(236, dtype=torch.uint8)
+A 0: [('states', tensor(0, dtype=torch.uint8), tensor(236, dtype=torch.uint8)), ('next_states', tensor(0, dtype=torch.uint8), tensor(236, dtype=torch.uint8)), ('actions', tensor(0), tensor(17)), ('rewards', tensor(0.), tensor(0.)), ('dones', tensor(False), tensor(False)), ('real_dones', tensor(False), tensor(False)), ('ext_values', tensor(-2.7361e-06), tensor(1.1634e-05)), ('int_values', tensor(-1.2543e-05), tensor(1.4732e-06)), ('policies', tensor(-1.8974e-05), tensor(2.5377e-05)), ('log_prob_policies', tensor(-2.8904), tensor(-2.8904)), ('obs_stats', tensor(0.), tensor(235.9999))]
+A 0: agent state tensor([-0.0300, -0.0201, -0.0147,  0.1003,  0.0042,  0.0854], device='cuda:1')
+A 0: Updated trajectories
+A 0: End of step
+A 1: Waited for learner to finish
+A 1: Loaded new actor state
+A 1: states tensor(0, dtype=torch.uint8) tensor(236, dtype=torch.uint8)
+A 1: [('states', tensor(0, dtype=torch.uint8), tensor(236, dtype=torch.uint8)), ('next_states', tensor(0, dtype=torch.uint8), tensor(236, dtype=torch.uint8)), ('actions', tensor(0), tensor(17)), ('rewards', tensor(0.), tensor(0.)), ('dones', tensor(False), tensor(False)), ('real_dones', tensor(False), tensor(False)), ('ext_values', tensor(-5.7027e-06), tensor(9.0614e-06)), ('int_values', tensor(-1.3192e-05), tensor(1.1664e-06)), ('policies', tensor(-1.8644e-05), tensor(2.5216e-05)), ('log_prob_policies', tensor(-2.8904), tensor(-2.8904)), ('obs_stats', tensor(0.), tensor(235.9999))]
+A 1: agent state tensor([-0.0300, -0.0201, -0.0147,  0.1003,  0.0042,  0.0854], device='cuda:1')
+A 1: Updated trajectories
+A 1: End of step
+A 2: Waited for learner to finish
+A 2: Loaded new actor state
+A 2: states tensor(0, dtype=torch.uint8) tensor(236, dtype=torch.uint8)
+A 2: [('states', tensor(0, dtype=torch.uint8), tensor(236, dtype=torch.uint8)), ('next_states', tensor(0, dtype=torch.uint8), tensor(236, dtype=torch.uint8)), ('actions', tensor(0), tensor(17)), ('rewards', tensor(0.), tensor(0.)), ('dones', tensor(False), tensor(False)), ('real_dones', tensor(False), tensor(False)), ('ext_values', tensor(-0.0004), tensor(-0.0003)), ('int_values', tensor(0.0049), tensor(0.0056)), ('policies', tensor(-0.0032), tensor(0.0035)), ('log_prob_policies', tensor(-2.8931), tensor(-2.8867)), ('obs_stats', tensor(0.), tensor(235.9999))]
+A 2: agent state tensor([-0.0296, -0.0205, -0.0144,  0.1006,  0.0046,  0.0858], device='cuda:1')
+A 2: Updated trajectories
+A 2: End of step
+A 3: Waited for learner to finish
+A 3: Loaded new actor state
+A 3: states tensor(0, dtype=torch.uint8) tensor(236, dtype=torch.uint8)
+A 3: [('states', tensor(0, dtype=torch.uint8), tensor(236, dtype=torch.uint8)), ('next_states', tensor(0, dtype=torch.uint8), tensor(236, dtype=torch.uint8)), ('actions', tensor(0), tensor(17)), ('rewards', tensor(0.), tensor(0.)), ('dones', tensor(False), tensor(False)), ('real_dones', tensor(False), tensor(False)), ('ext_values', tensor(-0.0010), tensor(-0.0009)), ('int_values', tensor(0.0263), tensor(0.0292)), ('policies', tensor(-0.0158), tensor(0.0178)), ('log_prob_policies', tensor(-2.9044), tensor(-2.8716)), ('obs_stats', tensor(0.), tensor(235.9999))]
+A 3: agent state tensor([-0.0293, -0.0209, -0.0140,  0.1008,  0.0048,  0.0860], device='cuda:1')
+A 3: Updated trajectories
+A 3: End of step
+A 4: Waited for learner to finish
+A 4: Loaded new actor state
+A 4: states tensor(0, dtype=torch.uint8) tensor(236, dtype=torch.uint8)
+A 4: [('states', tensor(0, dtype=torch.uint8), tensor(236, dtype=torch.uint8)), ('next_states', tensor(0, dtype=torch.uint8), tensor(236, dtype=torch.uint8)), ('actions', tensor(0), tensor(17)), ('rewards', tensor(0.), tensor(0.)), ('dones', tensor(False), tensor(False)), ('real_dones', tensor(False), tensor(False)), ('ext_values', tensor(-4.5298e-05), tensor(-2.5162e-05)), ('int_values', tensor(0.0923), tensor(0.0997)), ('policies', tensor(-0.0433), tensor(0.0478)), ('log_prob_policies', tensor(-2.9307), tensor(-2.8406)), ('obs_stats', tensor(0.), tensor(235.9999))]
+A 4: agent state tensor([-0.0292, -0.0212, -0.0137,  0.1007,  0.0049,  0.0859], device='cuda:1')
+A 4: Updated trajectories
+A 4: End of step
+A 5: Waited for learner to finish
+A 5: Loaded new actor state
+A 5: states tensor(0, dtype=torch.uint8) tensor(236, dtype=torch.uint8)
+A 5: [('states', tensor(0, dtype=torch.uint8), tensor(236, dtype=torch.uint8)), ('next_states', tensor(0, dtype=torch.uint8), tensor(236, dtype=torch.uint8)), ('actions', tensor(0), tensor(17)), ('rewards', tensor(0.), tensor(0.)), ('dones', tensor(False), tensor(True)), ('real_dones', tensor(False), tensor(True)), ('ext_values', tensor(-0.0043), tensor(-0.0040)), ('int_values', tensor(0.2634), tensor(0.2839)), ('policies', tensor(-0.0811), tensor(0.0599)), ('log_prob_policies', tensor(-2.9696), tensor(-2.8294)), ('obs_stats', tensor(0.), tensor(235.9999))]
+A 5: agent state tensor([-0.0290, -0.0215, -0.0135,  0.1006,  0.0050,  0.0857], device='cuda:1')
+A 5: Updated trajectories
+A 5: End of step
+A 6: Waited for learner to finish
+A 6: Loaded new actor state
+A 6: states tensor(0, dtype=torch.uint8) tensor(236, dtype=torch.uint8)
+A 6: [('states', tensor(0, dtype=torch.uint8), tensor(236, dtype=torch.uint8)), ('next_states', tensor(0, dtype=torch.uint8), tensor(236, dtype=torch.uint8)), ('actions', tensor(0), tensor(17)), ('rewards', tensor(0.), tensor(0.)), ('dones', tensor(False), tensor(True)), ('real_dones', tensor(False), tensor(True)), ('ext_values', tensor(-0.0043), tensor(-0.0039)), ('int_values', tensor(0.4993), tensor(0.5444)), ('policies', tensor(-0.1103), tensor(0.0651)), ('log_prob_policies', tensor(-2.9994), tensor(-2.8262)), ('obs_stats', tensor(0.), tensor(235.9999))]
+A 6: agent state tensor([-0.0289, -0.0217, -0.0133,  0.1006,  0.0049,  0.0855], device='cuda:1')
+A 6: Updated trajectories
+A 6: End of step
+A 7: Waited for learner to finish
+A 7: Loaded new actor state
+A 7: states tensor(0, dtype=torch.uint8) tensor(236, dtype=torch.uint8)
+A 7: [('states', tensor(0, dtype=torch.uint8), tensor(236, dtype=torch.uint8)), ('next_states', tensor(0, dtype=torch.uint8), tensor(236, dtype=torch.uint8)), ('actions', tensor(0), tensor(17)), ('rewards', tensor(0.), tensor(0.)), ('dones', tensor(False), tensor(True)), ('real_dones', tensor(False), tensor(True)), ('ext_values', tensor(-0.0056), tensor(-0.0052)), ('int_values', tensor(0.5472), tensor(0.5903)), ('policies', tensor(-0.1185), tensor(0.0736)), ('log_prob_policies', tensor(-3.0081), tensor(-2.8184)), ('obs_stats', tensor(0.), tensor(235.9999))]
+A 7: agent state tensor([-0.0288, -0.0219, -0.0132,  0.1005,  0.0049,  0.0854], device='cuda:1')
+A 7: Updated trajectories
+A 7: End of step
+A 8: Waited for learner to finish
+A 8: Loaded new actor state
+A 8: states tensor(0, dtype=torch.uint8) tensor(236, dtype=torch.uint8)
+A 8: [('states', tensor(0, dtype=torch.uint8), tensor(236, dtype=torch.uint8)), ('next_states', tensor(0, dtype=torch.uint8), tensor(236, dtype=torch.uint8)), ('actions', tensor(0), tensor(17)), ('rewards', tensor(0.), tensor(0.)), ('dones', tensor(False), tensor(True)), ('real_dones', tensor(False), tensor(True)), ('ext_values', tensor(-0.0030), tensor(-0.0027)), ('int_values', tensor(0.7841), tensor(0.8519)), ('policies', tensor(-0.1668), tensor(0.1043)), ('log_prob_policies', tensor(-3.0542), tensor(-2.7878)), ('obs_stats', tensor(0.), tensor(235.9999))]
+A 8: agent state tensor([-0.0287, -0.0220, -0.0131,  0.1003,  0.0050,  0.0852], device='cuda:1')
+A 8: Updated trajectories
+A 8: End of step
+A 9: Waited for learner to finish
+A 9: Loaded new actor state
+A 9: states tensor(0, dtype=torch.uint8) tensor(236, dtype=torch.uint8)
+A 9: [('states', tensor(0, dtype=torch.uint8), tensor(236, dtype=torch.uint8)), ('next_states', tensor(0, dtype=torch.uint8), tensor(236, dtype=torch.uint8)), ('actions', tensor(0), tensor(17)), ('rewards', tensor(0.), tensor(0.)), ('dones', tensor(False), tensor(True)), ('real_dones', tensor(False), tensor(True)), ('ext_values', tensor(-0.0075), tensor(-0.0070)), ('int_values', tensor(0.8148), tensor(0.8710)), ('policies', tensor(-0.1908), tensor(0.1723)), ('log_prob_policies', tensor(-3.0758), tensor(-2.7157)), ('obs_stats', tensor(0.), tensor(235.9999))]L 8: Made train step
+L 8: states after tr step tensor(0, dtype=torch.uint8) tensor(236, dtype=torch.uint8)
+L 9: passed episodes 0
+L 9: Waited for agent to finish
+L 9: [('states', tensor(0, dtype=torch.uint8), tensor(236, dtype=torch.uint8)), ('next_states', tensor(0, dtype=torch.uint8), tensor(236, dtype=torch.uint8)), ('actions', tensor(0), tensor(17)), ('rewards', tensor(0.), tensor(0.)), ('dones', tensor(False), tensor(True)), ('real_dones', tensor(False), tensor(True)), ('ext_values', tensor(-0.0075), tensor(-0.0070)), ('int_values', tensor(0.8148), tensor(0.8710)), ('policies', tensor(-0.1908), tensor(0.1723)), ('log_prob_policies', tensor(-3.0758), tensor(-2.7157)), ('obs_stats', tensor(0.), tensor(235.9999))]
+L 9: agent state tensor([-0.0288, -0.0221, -0.0129,  0.0999,  0.0050,  0.0848], device='cuda:1')
+L 9: states before train step tensor(0, dtype=torch.uint8) tensor(236, dtype=torch.uint8)
+L 9: Loaded stored data & send agent state
+[Episode 1(8)] Step: 364  Reward: 0.0  Recent Reward: 0.0  Visited Room: [{1}]
+[Episode 1(25)] Step: 271  Reward: 0.0  Recent Reward: 0.0  Visited Room: [{1}]
+[Episode 1(27)] Step: 219  Reward: 0.0  Recent Reward: 0.0  Visited Room: [{1}]
+[Episode 1(6)] Step: 241  Reward: 0.0  Recent Reward: 0.0  Visited Room: [{1}]
+[Episode 1(5)] Step: 288  Reward: 0.0  Recent Reward: 0.0  Visited Room: [{1}]
+[Episode 1(0)] Step: 308  Reward: 0.0  Recent Reward: 0.0  Visited Room: [{1}]
+[Episode 1(30)] Step: 214  Reward: 0.0  Recent Reward: 0.0  Visited Room: [{1}]
+[Episode 1(4)] Step: 203  Reward: 0.0  Recent Reward: 0.0  Visited Room: [{1}]
+[Episode 1(24)] Step: 325  Reward: 0.0  Recent Reward: 0.0  Visited Room: [{1}]
+[Episode 1(17)] Step: 291  Reward: 0.0  Recent Reward: 0.0  Visited Room: [{1}]
+[Episode 1(21)] Step: 362  Reward: 0.0  Recent Reward: 0.0  Visited Room: [{1}]
+[Episode 1(11)] Step: 274  Reward: 0.0  Recent Reward: 0.0  Visited Room: [{1}]
+[Episode 1(9)] Step: 264  Reward: 0.0  Recent Reward: 0.0  Visited Room: [{1}]
+[Episode 1(10)] Step: 358  Reward: 0.0  Recent Reward: 0.0  Visited Room: [{1}]
+[Episode 1(16)] Step: 355  Reward: 0.0  Recent Reward: 0.0  Visited Room: [{1}]
+[Episode 1(1)] Step: 370  Reward: 0.0  Recent Reward: 0.0  Visited Room: [{1}]
+Exception in actor process
+
+
+A 9: agent state tensor([-0.0287, -0.0221, -0.0130,  0.1001,  0.0051,  0.0850], device='cuda:1')
+A 9: Updated trajectories
+A 9: End of step
+A 10: Waited for learner to finish
+A 10: Loaded new actor state
+A 10: states tensor(0, dtype=torch.uint8) tensor(236, dtype=torch.uint8)
+A 10: [('states', tensor(0, dtype=torch.uint8), tensor(236, dtype=torch.uint8)), ('next_states', tensor(0, dtype=torch.uint8), tensor(236, dtype=torch.uint8)), ('actions', tensor(0), tensor(17)), ('rewards', tensor(0.), tensor(0.)), ('dones', tensor(False), tensor(True)), ('real_dones', tensor(False), tensor(True)), ('ext_values', tensor(-0.0038), tensor(-0.0036)), ('int_values', tensor(1.0052), tensor(1.0822)), ('policies', tensor(-0.3637), tensor(0.3113)), ('log_prob_policies', tensor(-3.2542), tensor(-2.5849)), ('obs_stats', tensor(0.), tensor(235.9999))]
+A 10: agent state tensor([-0.0288, -0.0221, -0.0129,  0.0999,  0.0050,  0.0848], device='cuda:1')
+A 10: Updated trajectories
+A 10: End of step
+Finished!
