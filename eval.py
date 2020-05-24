@@ -32,7 +32,6 @@ if True: # Make old version of checkpoint work
         for key_1, item_1 in item.items():
             new_item[key_1.replace("module.", "")] = item_1
         torch_load["Agent"][key] = new_item
-        print(new_item)
 agent.load_state_dict(torch_load["Agent"])
 
 if not USETPU:
