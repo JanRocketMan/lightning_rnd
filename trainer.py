@@ -146,7 +146,7 @@ class RNDTrainer:
                             self.stored_data["states"].reshape(-1, 4, 84, 84).float() / 255
                         )
                         self.stored_data["new_log_prob_policies"] = self.agent.get_policy_log_prob(
-                            self.stored_data["actions"].reshape(-1), policy
+                            self.stored_data["actions"].reshape(-1).cpu().numpy(), policy
                         ).reshape(self.num_workers, -1)
 
                     ext_target, ext_adv = make_train_data(
