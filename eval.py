@@ -52,8 +52,6 @@ all_visited_rooms = set()
 for i in range(6000):
     with torch.no_grad():
         new_action, _, _, _ = agent.get_action(obs.reshape((1, 4, H, W)))
-    if np.random.rand() <= 0.25 and i > 0:
-        new_action = action
     action = new_action
     new_obs, reward, done, info = env.step(action)
     total_reward += reward
@@ -64,6 +62,6 @@ for i in range(6000):
         break
     all_visited_rooms.update(info.get('episode', {}).get('visited_rooms', {}))
 if not done:
-    print_fn("Interrupted after 4500 steps, total reward is %d" % total_reward)
+    print_fn("Interrupted after 6000 steps, total reward is %d" % total_reward)
 env.close()
 print_fn("All visited rooms: " + str(all_visited_rooms))

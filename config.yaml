@@ -12,7 +12,7 @@ NumInitSteps: 1024
 RolloutSteps: 128
 ExtRewardDiscount: 0.999
 IntRewardDiscount: 0.99
-ExtCoeff: 1.0
+ExtCoeff: 2.0
 IntCoeff: 1.0
 LearningRate: 0.0001
 ClipGradNorm: 10.0
@@ -26,6 +26,6 @@ RNDUpdateProportion: 0.25
 PPOEntropyCoeff: 0.001
 PPORewardEps: 0.1
 PPOAdvLambda: 0.95
-UseVTraceCorrection: True
+UseVTraceCorrection: False
 
 UseTPU: False
