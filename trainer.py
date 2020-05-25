@@ -26,7 +26,6 @@ else:
     print_fn = print
     save_fn = torch.save
 
-INT_REWARD_DISCOUNT = default_config["IntrinsicRewardDiscount"]
 ROLLOUT_STEPS = default_config["RolloutSteps"]
 EXT_DISCOUNT = default_config["ExtRewardDiscount"]
 INT_DISCOUNT = default_config["IntRewardDiscount"]
@@ -84,7 +83,7 @@ class RNDTrainer:
             self.load_state_dict(state_dict)
 
         self.reward_stats = RunningMeanStd()
-        self.disc_reward = RewardForwardFilter(INT_REWARD_DISCOUNT)
+        self.disc_reward = RewardForwardFilter(INT_DISCOUNT)
 
         self.stored_data = {}
 

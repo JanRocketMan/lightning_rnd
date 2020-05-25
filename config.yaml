@@ -6,10 +6,9 @@ UseStickyAction: True
 StickyActionProb: 0.25
 
 NumWorkers: 128
-IntrinsicRewardDiscount: 0.99
+RolloutSteps: 128
 NumInitSteps: 1024
 
-RolloutSteps: 128
 ExtRewardDiscount: 0.999
 IntRewardDiscount: 0.99
 ExtCoeff: 2.0
