@@ -17,7 +17,7 @@ LearningRate: 0.0001
 ClipGradNorm: 10.0
 BatchSize: 4096
 EpochSteps: 4
-SavePath: "/home/chervontsev/checkpoints/RndAgent.ckpt"
+SavePath: "/home/chervontsev/checkpoints/RndAgentAlt.ckpt"
 
 NumEpochs: 10000
 
@@ -25,6 +25,6 @@ RNDUpdateProportion: 0.25
 PPOEntropyCoeff: 0.001
 PPORewardEps: 0.1
 PPOAdvLambda: 0.95
-UseVTraceCorrection: False
+UseVTraceCorrection: True
 
 UseTPU: False

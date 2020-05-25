@@ -21,7 +21,7 @@ def make_train_data(
 
     if VTRACE:
         delta_coeffs = torch.clamp_min(
-            torch.exp(log_probs_policies - log_probs_policies_old + 1e-6),
+            torch.exp(log_probs_policies - log_probs_policies_old),
             1.0
         )
 
