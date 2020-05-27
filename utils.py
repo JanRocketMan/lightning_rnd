@@ -15,6 +15,8 @@ def make_train_data(
     num_steps, num_workers, 
     log_probs_policies_old=None, log_probs_policies=None
 ):
+    assert reward.shape[1] == done.shape[1] == value.shape[1] == num_steps
+
     discounted_return = torch.empty([num_workers, num_steps])
     # PPO Discounted Return 
     generalized_advanced_estimation = torch.zeros((num_workers)).float()
@@ -26,10 +28,17 @@ def make_train_data(
         )
 
     for t in range(num_steps - 1, -1, -1):
-        delta = -value[:, t] + reward[:, t] + discount * value[:, t + 1] * (1 - done[:, t])
+        if t == num_steps - 1:
+            value_tplus1 = value[:, t]
+        else:
+            value_tplus1 = value[:, t + 1]
+
+        delta = -value[:, t] + reward[:, t] + discount * value_tplus1 * (1 - done[:, t])
         generalized_advanced_estimation = delta + discount * LAMBDA * (1 - done[:, t]) * generalized_advanced_estimation
+
         if VTRACE:
             generalized_advanced_estimation *= delta_coeffs[:, t]
+
         discounted_return[:, t] = generalized_advanced_estimation + value[:, t]
     advantage = discounted_return - value[:, :-1]
     return discounted_return.reshape([-1]), advantage.reshape([-1])

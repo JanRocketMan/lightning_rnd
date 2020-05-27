@@ -34,8 +34,8 @@ def get_default_stored_data(W, T, action_dim):
         'rewards': torch.zeros((W, T)).float(),
         'dones': torch.zeros((W, T), dtype=torch.bool),
         'real_dones': torch.zeros((W, T), dtype=torch.bool),
-        'ext_values': torch.zeros((W, T + 1)).float(),
-        'int_values': torch.zeros((W, T + 1)).float(),
+        'ext_values': torch.zeros((W, T)).float(),
+        'int_values': torch.zeros((W, T)).float(),
         'policies': torch.zeros((W, T, action_dim)).float(),
         'log_prob_policies': torch.zeros((W, T)).float(),
         'obs_stats': torch.zeros((2, IMAGE_HEIGHT, IMAGE_WIDTH)).float()
@@ -176,13 +176,6 @@ class ParallelEnvironmentRunner:
 
                     self.log_current_results(idx)
 
-                with torch.no_grad():
-                    _, ext_value, int_value, _ = self.actor_agent.get_action(
-                        self.current_state.numpy().astype('float') / 255
-                    )
-                    self.push_to_stored_data('ext_values', ext_value, self.rollout_steps)
-                    self.push_to_stored_data('int_values', int_value, self.rollout_steps)
-
                 #print("A %d: states" % i, self.stored_data["states"].min(), self.stored_data["states"].max())
 
                 for key in self.stored_data.keys():
@@ -226,7 +219,7 @@ class ParallelEnvironmentRunner:
                 'data/max_prob_per_episode', torch.softmax(
                     self.stored_data["policies"][:, step_idx],
                     -1
-                ).max(1)[0].mean().item()
+                ).max(1)[0].mean().item(), self.log_episode
             )
             self.writer.add_scalar('data/num_rooms_visited_per_episode', len(self.log_rooms_visited), self.log_episode)
 
