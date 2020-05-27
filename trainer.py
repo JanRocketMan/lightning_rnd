@@ -143,10 +143,14 @@ class RNDTrainer:
                     self.normalize_rewards()
 
                     if VTRACE:
-                        action, _, _, policy = self.agent.get_action(self.stored_data["states"].reshape(-1, 4, 84, 84).float() / 255)
+                        action, value_ext, value_int, policy = self.agent.get_action(
+                            self.stored_data["states"].reshape(-1, 4, 84, 84).float() / 255
+                        )
                         self.stored_data["new_log_prob_policies"] = self.agent.get_policy_log_prob(
                             action, policy
                         ).reshape(self.num_workers, -1)
+                        self.stored_data["ext_values"] = value_ext
+                        self.stored_data["int_values"] = value_int
 
                     ext_target, ext_adv = make_train_data(
                         self.stored_data["rewards"], self.stored_data["dones"].float(),

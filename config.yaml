@@ -7,12 +7,12 @@ StickyActionProb: 0.25
 
 NumWorkers: 128
 IntrinsicRewardDiscount: 0.99
-NumInitSteps: 1024
+NumInitSteps: 2048
 
 RolloutSteps: 128
 ExtRewardDiscount: 0.999
 IntRewardDiscount: 0.99
-ExtCoeff: 0.0
+ExtCoeff: 2.0
 IntCoeff: 1.0
 LearningRate: 0.0001
 ClipGradNorm: 10.0
