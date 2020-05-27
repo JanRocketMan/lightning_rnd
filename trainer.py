@@ -148,6 +148,10 @@ class RNDTrainer:
                         self.stored_data["new_log_prob_policies"] = self.agent.get_policy_log_prob(
                             self.stored_data["actions"].reshape(-1).cpu().numpy(), policy
                         ).reshape(self.num_workers, -1)
+                        assert self.stored_data["ext_values"].shape == value_ext.shape
+                        assert self.stored_data["int_values"].shape == value_int.shape
+                        assert self.stored_data["actions"].shape == action.shape
+                        assert self.stored_data["log_prob_policies"].shape == self.stored_data["new_log_prob_policies"].shape
                         self.stored_data["ext_values"] = value_ext
                         self.stored_data["int_values"] = value_int
 
