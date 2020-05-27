@@ -79,19 +79,9 @@ def train_montezuma():
 
     print_fn("Initializing buffer and shared state...")
     with torch.no_grad():
-        #zero_dict = get_default_stored_data(NUM_WORKERS, ROLLOUT_STEPS, action_dim)
-        #buffer = {}
-        #for key in zero_dict.keys():
-        #    buffer[key] = list(zero_dict[key].share_memory_())
-
-        #buffer = []
-        #for key in sorted(zero_dict.keys()):
-        #    buffer.append(zero_dict[key].share_memory_())
-
         buffer = create_buffer(NUM_WORKERS, ROLLOUT_STEPS, action_dim)
 
     shared_model = RNDPPOAgent(action_dim, device=run_device)
-
     shared_model.share_memory()
 
     parent_conn, child_conn = Pipe()
@@ -107,13 +97,6 @@ def train_montezuma():
 
     print_fn("Done, initializing RNDTrainer...")
 
-    #trainer = RNDTrainer(
-    #    NUM_WORKERS, 4, child_conn, agent, EPOCHS,
-    #    state_dict=state_dict
-    #)
-
-    print_fn("Done, training")
-
     learner = Process(
         target=run_rnd_trainer,
         args=(
@@ -122,6 +105,8 @@ def train_montezuma():
         )
     )
     learner.start()
+
+    print_fn("Done, training")
 
     env_runner.run_agent()
 

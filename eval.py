@@ -24,8 +24,16 @@ H, W = default_config["ImageHeight"], default_config["ImageWidth"]
 env = MontezumaInfoWrapper(MaxAndSkipEnv(gym.make(ENV_NAME), is_render=False), room_address=3)
 action_dim = env.action_space.n
 agent = RNDPPOAgent(action_dim, device='cpu')
-torch_load = torch.load(SAVE_PATH, map_location=torch.device('cpu'))
-agent.load_state_dict(torch_load["Agent"])
+agent_state = torch.load(SAVE_PATH, map_location='cpu')
+
+if "module." in list(agent_state["Agent"]["RNDModel"].keys())[0]:
+    # Fix loading if we store dataparallel model
+    for key, item in agent_state["Agent"].items():
+        new_item = {}
+        for key_1, item_1 in item.items():
+            new_item[key_1.replace("module.", "")] = item_1
+        agent_state["Agent"][key] = new_item
+agent.load_state_dict(agent_state["Agent"])
 
 if not USETPU:
     device = 'cuda'
@@ -35,12 +43,10 @@ else:
     import torch_xla.core.xla_model as xm
     device = xm.xla_device()
     print_fn = xm.master_print
-    #device = 'cpu'
-    #print_fn = print
 
 agent = agent.to(device)
 
-print_fn("N_updates " + str( torch_load["N_Updates"]))
+print_fn("N_updates " + str(agent_state["N_Updates"]))
 agent.actor_critic_model.eval()
 
 env = wrappers.Monitor(env, "./" + ENV_NAME + '_example_run', force=True)
@@ -52,8 +58,6 @@ all_visited_rooms = set()
 for i in range(6000):
     with torch.no_grad():
         new_action, _, _, _ = agent.get_action(obs.reshape((1, 4, H, W)))
-    if np.random.rand() <= 0.25 and i > 0:
-        new_action = action
     action = new_action
     new_obs, reward, done, info = env.step(action)
     total_reward += reward
@@ -64,6 +68,6 @@ for i in range(6000):
         break
     all_visited_rooms.update(info.get('episode', {}).get('visited_rooms', {}))
 if not done:
-    print_fn("Interrupted after 4500 steps, total reward is %d" % total_reward)
+    print_fn("Interrupted after 6000 steps, total reward is %d" % total_reward)
 env.close()
 print_fn("All visited rooms: " + str(all_visited_rooms))
