@@ -146,7 +146,7 @@ class RNDTrainer:
                             self.stored_data["states"].reshape(-1, 4, 84, 84).float() / 255
                         )
                         action, value_ext, value_int = [
-                            val.reshape(self.num_workers, -1) for val in [action, value_ext, value_int]
+                            torch.from_numpy(val.reshape(self.num_workers, -1)) for val in [action, value_ext, value_int]
                         ]
                         self.stored_data["new_log_prob_policies"] = self.agent.get_policy_log_prob(
                             self.stored_data["actions"].reshape(-1).cpu().numpy(), policy

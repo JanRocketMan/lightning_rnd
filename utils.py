@@ -40,7 +40,7 @@ def make_train_data(
             generalized_advanced_estimation *= delta_coeffs[:, t]
 
         discounted_return[:, t] = generalized_advanced_estimation + value[:, t]
-    advantage = discounted_return - value[:, :-1]
+    advantage = discounted_return - value
     return discounted_return.reshape([-1]), advantage.reshape([-1])
 
 
