@@ -8,6 +8,7 @@ from config import default_config
 
 LAMBDA = float(default_config['PPOAdvLambda'])
 VTRACE = default_config.get("UseVTraceCorrection", False)
+PPO_EPS = default_config["PPORewardEps"]
 
 
 def make_train_data(
@@ -24,7 +25,7 @@ def make_train_data(
     if VTRACE:
         delta_coeffs = torch.clamp(
             torch.exp(log_probs_policies - log_probs_policies_old),
-            0.8, 1.2
+            1.0, 1.0 + PPO_EPS
         )
 
     for t in range(num_steps - 1, -1, -1):
