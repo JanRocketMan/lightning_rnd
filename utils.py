@@ -22,9 +22,9 @@ def make_train_data(
     generalized_advanced_estimation = torch.zeros((num_workers)).float()
 
     if VTRACE:
-        delta_coeffs = torch.clamp_min(
+        delta_coeffs = torch.clamp(
             torch.exp(log_probs_policies - log_probs_policies_old),
-            1.0
+            0.8, 1.2
         )
 
     for t in range(num_steps - 1, -1, -1):
@@ -34,6 +34,7 @@ def make_train_data(
             value_tplus1 = value[:, t + 1]
 
         delta = -value[:, t] + reward[:, t] + discount * value_tplus1 * (1 - done[:, t])
+
         generalized_advanced_estimation = delta + discount * LAMBDA * (1 - done[:, t]) * generalized_advanced_estimation
 
         if VTRACE:
