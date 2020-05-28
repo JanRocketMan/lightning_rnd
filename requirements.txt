@@ -15,7 +15,6 @@ google-auth==1.14.2
 google-auth-oauthlib==0.4.1
 grpcio==1.28.1
 gym==0.17.1
-gym-super-mario-bros==7.3.0
 idna==2.9
 importlib-metadata==1.6.0
 ipykernel==5.3.0
@@ -72,8 +71,6 @@ tensorboard-plugin-wit==1.6.0.post3
 tensorboardX==2.0
 terminado==0.8.3
 testpath==0.4.4
-torch==1.5.0+cu92
-torchvision==0.6.0+cu92
 tornado==6.0.4
 tqdm==4.46.0
 traitlets==4.3.3
