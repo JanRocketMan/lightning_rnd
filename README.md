@@ -24,13 +24,13 @@ python montezuma_eval.py
 
 Montezuma Revenge
 
-Training with only intrinsic reward
-
-#ADDHERE
-
 Training with both intrinsic and extrinsic reward
 
-#ADDHERE
+![ext_intr](./videos/usual_training_2.gif)
+
+Training with only intrinsic reward
+
+![intr](./videos/only_intrinsic_fast.gif)
 
 # ToDo
 
