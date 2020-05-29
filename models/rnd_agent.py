@@ -1,8 +1,8 @@
 import torch
 from torch.distributions.categorical import Categorical
 
-from config import default_config
-from models import CNNPolicyNet, RNDNet
+from util.config import default_config
+from .networks import CNNPolicyNet, RNDNet
 
 
 UPDATE_PROP = default_config["RNDUpdateProportion"]
@@ -21,10 +21,8 @@ class RNDPPOAgent(torch.nn.Module):
 
     def get_action(self, states):
         states = torch.FloatTensor(states).to(self.device)
-        #print('state', states.min().item(), states.max().item(), end='\t')
 
         policy, value_ext, value_int = self.actor_critic_model(states)
-        #print('policy', policy.min(), policy.max(), 'value', value_ext.min(), value_ext.max())
         action = Categorical(torch.softmax(policy, dim=-1)).sample()
 
         return [val.cpu().numpy() for val in [action, value_ext.squeeze(), value_int.squeeze(), policy]]

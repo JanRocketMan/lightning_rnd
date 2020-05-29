@@ -9,12 +9,11 @@ from copy import copy
 
 from torch.multiprocessing import Process
 
-from config import default_config
+from util.config import default_config
 from PIL import Image
 
-USE_TPU = default_config["UseTPU"]
+USE_TPU = default_config.get("UseTPU", False)
 if USE_TPU:
-    import torch_xla
     import torch_xla.core.xla_model as xm
     print_fn = xm.master_print
 else:

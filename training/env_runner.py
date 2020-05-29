@@ -5,12 +5,20 @@ import numpy as np
 
 from torch.multiprocessing import Pipe
 import torch
-from config import default_config
+from util.config import default_config
 
-from rnd_agent import RNDPPOAgent
-from environments import AtariEnvironmentWrapper
-from utils import RunningMeanStd
+from models.rnd_agent import RNDPPOAgent
+from environments.atari_env import AtariEnvironmentWrapper
+from util.utils import RunningMeanStd
 
+USE_TPU = default_config.get("UseTPU", False)
+if USE_TPU:
+    import torch_xla.core.xla_model as xm
+    print_fn = xm.master_print
+    save_fn = xm.save
+else:
+    print_fn = print
+    save_fn = torch.save
 
 ENV_NAME = default_config["EnvName"]
 STICKY_ACTION = default_config["UseStickyAction"]
@@ -159,14 +167,10 @@ class ParallelEnvironmentRunner:
     def run_agent(self, lock=threading.Lock()):
         try:
             for i in range(self.num_epochs):
-                self.next_int_rew = self.conn_to_learner.recv()
-
-                #print("A %d: Waited for learner to finish" % i)
+                self.next_int_rew = self.conn_to_learner.recv() # Wait for learner to store shared weights
 
                 self.log_total_steps += 1
                 self.reset_stored_data()
-
-                #print("A %d: Loaded new actor state" % i)
 
                 for idx in range(self.rollout_steps):
                     self.run_agent_step(
@@ -176,14 +180,8 @@ class ParallelEnvironmentRunner:
 
                     self.log_current_results(idx)
 
-                #print("A %d: states" % i, self.stored_data["states"].min(), self.stored_data["states"].max())
-
                 for key in self.stored_data.keys():
-                    self.buffer[key][0][...] = self.stored_data[key]
-                #print("A %d:" % i, [(it[0], it[1][0].min(), it[1][0].max()) for it in self.buffer.items()])
-                #print("A %d: agent state" % i, self.actor_agent.state_dict()["RNDModel"]['distill_net.9.weight'][:6, 0])
-
-                #print("A %d: Updated trajectories" % i)
+                    self.buffer[key][0][...] = self.stored_data[key] # Store trajectories for learner
 
                 self.conn_to_learner.send(
                     self.passed_episodes
@@ -195,14 +193,12 @@ class ParallelEnvironmentRunner:
 
                 self.passed_episodes = 0
 
-                #print("A %d: End of step" % i)
-
         except KeyboardInterrupt:
             pass  # Return silently.
         except Exception as e:
-            print("Exception in actor process")
+            print_fn("Exception in actor process")
             traceback.print_exc()
-            print()
+            print_fn("")
             raise e
 
     def log_current_results(self, step_idx):

@@ -6,17 +6,16 @@ import threading
 from torch.optim import Adam
 from tensorboardX import SummaryWriter
 
-from config import default_config
-from env_runner import ParallelEnvironmentRunner, get_default_stored_data
-from rnd_agent import RNDPPOAgent
-from utils import RewardForwardFilter, RunningMeanStd, make_train_data
+from util.config import default_config
+from .env_runner import ParallelEnvironmentRunner, get_default_stored_data
+from models.rnd_agent import RNDPPOAgent
+from util.utils import RewardForwardFilter, RunningMeanStd, make_train_data
 
 from torch import multiprocessing as mp
 from torch.multiprocessing import Process
 
-import time
 
-USE_TPU = default_config["UseTPU"]
+USE_TPU = default_config.get("UseTPU", False)
 if USE_TPU:
     import torch_xla
     import torch_xla.core.xla_model as xm
@@ -108,23 +107,14 @@ class RNDTrainer:
     def train(self, lock=threading.Lock()):
         try:
             self.shared_agent.load_state_dict(self.agent.state_dict())
-
             self.conn_to_actor.send(True)
-            #print("L -1: Sent to agent that everything is ok")
 
             for k in range(self.num_epochs):
-                passed_episodes = self.conn_to_actor.recv()
-                #print("L %d: passed episodes" % k, passed_episodes)
-                #print("L %d: Waited for agent to finish" % k)
+                passed_episodes = self.conn_to_actor.recv() # Wait for actor to infer with current weights
 
-                #print("L %d:" % k, [(it[0], it[1][0].min(), it[1][0].max()) for it in self.buffer.items()])
                 for key in self.buffer.keys():
-                    self.stored_data[key] = self.buffer[key][0]
-                self.shared_agent.load_state_dict(self.agent.state_dict())
-                #print("L %d: agent state" % k, self.shared_agent.state_dict()["RNDModel"]['distill_net.9.weight'][:6, 0])
-
-                #print("L %d: states before train step" % k, self.stored_data["states"].min(), self.stored_data["states"].max())
-                #print("L %d: Loaded stored data & send agent state" % k)
+                    self.stored_data[key] = self.buffer[key][0] # Retrieve trajectories
+                self.shared_agent.load_state_dict(self.agent.state_dict()) # Update actor weights
 
                 if "intrinsic_rewards" in self.stored_data.keys():
                     self.conn_to_actor.send(
@@ -138,7 +128,7 @@ class RNDTrainer:
                 self.n_episodes += passed_episodes
 
                 with torch.no_grad():
-                    self.get_intrinsic_rewards()
+                    self.get_intrinsic_rewards() # Collect intrinsic rewards with CURRENT Rnd Net
                     self.normalize_rewards()
 
                     if VTRACE:
@@ -158,6 +148,7 @@ class RNDTrainer:
                         self.stored_data["ext_values"] = value_ext
                         self.stored_data["int_values"] = value_int
 
+                    # Estimate advantages recursively (with optional VTrace correction)
                     ext_target, ext_adv = make_train_data(
                         self.stored_data["rewards"], self.stored_data["dones"].float(),
                         self.stored_data["ext_values"], EXT_DISCOUNT,
@@ -183,8 +174,6 @@ class RNDTrainer:
                         )
                     )
                 self.train_step(c_loader)
-                #print("L %d: Made train step" % k)
-                #print("L %d: states after tr step" % k, self.stored_data["states"].min(), self.stored_data["states"].max())
 
                 if self.n_updates % 100 == 0:
                     save_fn(self.state_dict(), SAVE_PATH)

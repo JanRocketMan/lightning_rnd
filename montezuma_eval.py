@@ -5,9 +5,9 @@ from PIL import Image
 import torch
 import cv2
 
-from config import default_config
-from rnd_agent import RNDPPOAgent
-from environments import MaxAndSkipEnv, MontezumaInfoWrapper
+from util.config import default_config
+from models.rnd_agent import RNDPPOAgent
+from environments.atari_env import MaxAndSkipEnv, MontezumaInfoWrapper
 
 
 def pre_proc(X, h, w):
@@ -15,10 +15,11 @@ def pre_proc(X, h, w):
     x = cv2.resize(X, (h, w))
     return x / 255
 
+RUN_DEVICE = default_config["RunDevice"]
 
 ENV_NAME = default_config["EnvName"]
 SAVE_PATH = default_config["SavePath"]
-USETPU = default_config["UseTPU"]
+USETPU = default_config.get("UseTPU", False)
 H, W = default_config["ImageHeight"], default_config["ImageWidth"]
 
 env = MontezumaInfoWrapper(MaxAndSkipEnv(gym.make(ENV_NAME), is_render=False), room_address=3)
@@ -36,7 +37,7 @@ if "module." in list(agent_state["Agent"]["RNDModel"].keys())[0]:
 agent.load_state_dict(agent_state["Agent"])
 
 if not USETPU:
-    device = 'cuda'
+    device = RUN_DEVICE
     print_fn = print
 else:
     import torch_xla

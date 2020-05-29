@@ -373,5 +373,3 @@ dependencies:
     - torch-xla==1.6+f64fdb7
     - torchvision==0.7.0a0+8c95855
     - uritemplate==3.0.1
-prefix: /anaconda3/envs/torch-xla-nightly
-

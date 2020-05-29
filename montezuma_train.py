@@ -3,19 +3,21 @@ import gym
 import torch
 from torch.multiprocessing import Process, Pipe, set_start_method, get_context
 from multiprocessing import Lock
-
-from config import default_config
-from environments import AtariEnvironmentWrapper
-from trainer import run_rnd_trainer
-from rnd_agent import RNDPPOAgent
-from env_runner import ParallelEnvironmentRunner, get_default_stored_data
 from tensorboardX import SummaryWriter
+
+from util.config import default_config
+from environments.atari_env import AtariEnvironmentWrapper
+from training.trainer import run_rnd_trainer
+from models.rnd_agent import RNDPPOAgent
+from training.env_runner import ParallelEnvironmentRunner, get_default_stored_data
 try:
     set_start_method('spawn')
 except RuntimeError:
     pass
 
-USETPU = default_config["UseTPU"]
+USETPU = default_config.get("UseTPU", False)
+OPT_DEVICE = default_config["OptimDevice"]
+RUN_DEVICE = default_config["RunDevice"]
 
 NUM_WORKERS = default_config["NumWorkers"]
 ENV_NAME = default_config["EnvName"]
@@ -24,7 +26,6 @@ ROLLOUT_STEPS = default_config["RolloutSteps"]
 STATE_DICT = default_config.get("StateDict", None)
 IMAGE_HEIGHT = default_config["ImageHeight"]
 IMAGE_WIDTH = default_config["ImageWidth"]
-
 
 Buffers = typing.Dict[str, typing.List[torch.Tensor]]
 
@@ -57,8 +58,8 @@ def train_montezuma():
     del env
 
     if not USETPU:
-        opt_device = 'cuda:0'
-        run_device = 'cuda:1'
+        opt_device = OPT_DEVICE
+        run_device = RUN_DEVICE
         print_fn = print
     else:
         import torch_xla

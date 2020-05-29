@@ -1,9 +1,7 @@
-from config import default_config
-
 import torch
 from torch._six import inf
 
-from config import default_config
+from .config import default_config
 
 
 LAMBDA = float(default_config['PPOAdvLambda'])
@@ -19,13 +17,12 @@ def make_train_data(
     assert reward.shape[1] == done.shape[1] == value.shape[1] == num_steps
 
     discounted_return = torch.empty([num_workers, num_steps])
-    # PPO Discounted Return 
     generalized_advanced_estimation = torch.zeros((num_workers)).float()
 
     if VTRACE:
-        delta_coeffs = torch.clamp(
+        delta_coeffs = torch.clamp_min(
             torch.exp(log_probs_policies - log_probs_policies_old),
-            1.0, 1.0 + PPO_EPS
+            1.0
         )
 
     for t in range(num_steps - 1, -1, -1):
