@@ -2,11 +2,13 @@
 
 Reimplementation of ["Exploration by Random Network Distillation"](https://arxiv.org/abs/1810.12894) aiming to train as fast as possible.
 
+A final project for the course ["Advanced Topics in Deep Reinforcement learning"](http://deeppavlov.ai/rl_course_2020) (a report is available in Russian).
+
 # Usage
 
-For a machine with GPUs - install all dependencies from either yml or txt file.
+Install all dependencies from either yml or txt file.
 
-Adjust config yaml file as you wish.
+Adjust config.yml file as you wish (note the "SavePath", "OptimDevice" and "RunDevice" arguments).
 
 Run model training via
 
@@ -24,11 +26,11 @@ python montezuma_eval.py
 
 Montezuma Revenge
 
-Training with both intrinsic and extrinsic reward
+Training with both intrinsic and extrinsic rewards
 
 ![ext_intr](./videos/usual_training_2.gif)
 
-Training with only intrinsic reward
+Training with intrinsic-only reward
 
 ![intr](./videos/only_intrinsic_fast.gif)
 
@@ -38,4 +40,4 @@ Training with only intrinsic reward
 - [x] Log number of rooms visited
 - [x] Add optional V-trace targets correction
 - [ ] Add TPU support
-- [ ] Add fp16 support 
+- [ ] Add fp16 support

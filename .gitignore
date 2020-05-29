@@ -144,3 +144,6 @@ runs/*
 # VS code settings
 .vscode/*
 
+# MP4 (unconverted) videos
+MontezumaRevengeNoFrameskip-v4_example_run/*
+
