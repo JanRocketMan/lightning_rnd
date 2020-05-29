@@ -1,12 +1,11 @@
 # lightning_rnd
 
-Reimplementation on Random Network Distillation for a TPU machine
-
 # ToDo
 
 - [x] Separate actor and learner
 - [x] Log number of rooms visited
 - [x] Add optional V-trace targets correction
+
 - [ ] Add TPU support
 - [ ] Add fp16 support 
 
@@ -14,10 +13,6 @@ Reimplementation on Random Network Distillation for a TPU machine
 
 Montezuma Revenge
 
-Training with only intrinsic reward
-
-![hippo](montezuma_run.gif)
-
 Training with both intrinsic and extrinsic reward
 
-![hippo](usual_training.gif)
+![hippo](./videos/usual_training_2.gif)
